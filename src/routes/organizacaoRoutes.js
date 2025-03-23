@@ -21,7 +21,7 @@ router.post(
 
       if (organizacao.admin.toString() !== req.user.id) {
         return res.status(403).json({ 
-          message: 'Acesso negado: apenas o Admin pode adicionar usuários' 
+          message: 'Acesso negado: apenas o Administrador pode adicionar usuários' 
         });
       }
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const organizacaoSchema = new mongoose.Schema({
   name: { 
@@ -10,7 +11,7 @@ const organizacaoSchema = new mongoose.Schema({
   admin: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
-    required: [true, 'O admin da organização é obrigatório'] 
+    required: [true, 'O admin é obrigatório'] 
   },
   users: [{
     type: mongoose.Schema.Types.ObjectId, 
@@ -19,23 +20,21 @@ const organizacaoSchema = new mongoose.Schema({
   conviteCode: {
     type: String,
     unique: true,
-    // Você pode gerar este código automaticamente antes de salvar o documento
+    default: function() {
+      return crypto.randomBytes(8).toString('hex');
+    }
   },
-  metadata: {
-    endereco: String,
-    telefone: String,
-    email: String
+  conviteExpiracao: {
+    type: Date,
+    default: () => Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 dias
   }
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
-// Método para verificar se um usuário pertence à organização
+// Métodos (mantidos)
 organizacaoSchema.methods.hasUser = function(userId) {
   return this.users.includes(userId) || this.admin.equals(userId);
 };
 
-// Método para adicionar um usuário à organização
 organizacaoSchema.methods.addUser = function(userId) {
   if (!this.users.includes(userId)) {
     this.users.push(userId);

@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
     type: String,  
     required: [true, 'O e-mail do usuário é obrigatório'],  
     unique: true,  
-    trim: true,  
+    trim: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'E-mail inválido'],
     lowercase: true  
 
   }, 
@@ -25,11 +26,11 @@ const userSchema = new mongoose.Schema({
     minlength: [6, 'A senha deve ter pelo menos 6 caracteres']  
 
   }, 
-  role: {  
-    type: String,  
-    enum: ['admin', 'perito', 'assistente'], // Roles permitidas 
-    required: [true, 'A role do usuário é obrigatória']  
-  }, 
+  role: {
+    type: String,
+    enum: ['administrador', 'perito', 'assistente'],
+    required: true
+  },
 
   organizacao: {  
     type: mongoose.Schema.Types.ObjectId,  
@@ -43,12 +44,11 @@ const userSchema = new mongoose.Schema({
 
 // Hash da senha antes de salvar 
 
-userSchema.pre('save', async function (next) { 
-
-  if (this.isModified('password')) { 
-    this.password = await bcrypt.hash(this.password, 10); 
-  } 
-  next(); 
-}); 
+userSchema.pre('save', async function (next) {
+    if (this.isModified('password')) {
+      this.password = await bcrypt.hash(this.password, 10);
+    }
+    next();
+  });
 
 module.exports = mongoose.model('User', userSchema); 

@@ -90,8 +90,8 @@ router.post('/registro/membro', async (req, res) => {
       return res.status(400).json({ message: 'E-mail já cadastrado' });
     }
 
-    // Busca a organização pelo código (você precisará implementar esse campo no modelo)
-    // Se você não tiver um código de convite, pode buscar por ID ou outro campo
+   
+   
     const organizacao = await Organizacao.findById(codigoOrganizacao);
     if (!organizacao) {
       return res.status(404).json({ message: 'Organização não encontrada' });

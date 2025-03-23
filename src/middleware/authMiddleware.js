@@ -32,7 +32,10 @@ const authMiddleware = async (req, res, next) => {
       }
       
       // Adiciona as informações do usuário à requisição
-      req.user = user;
+      req.user = {
+        ...user.toObject(),
+        organizationId: decoded.organizationId 
+      };
       
       // Continua para o próximo middleware/controlador
       next();
@@ -43,7 +46,7 @@ const authMiddleware = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.error('Erro no middleware de autenticação:', error);
+    console.error(`[AuthMiddleware] Erro: ${error.message}`, { requestId: req.id });
     res.status(500).json({ 
       message: 'Erro no servidor', 
       error: process.env.NODE_ENV === 'production' ? 'Erro interno' : error.message 
