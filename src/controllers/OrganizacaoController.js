@@ -1,123 +1,112 @@
+// controllers/OrganizacaoController.js
 const mongoose = require('mongoose');
 const Organizacao = require('../models/Organizacao');
 const User = require('../models/User');
 const crypto = require('crypto');
 
 const OrganizacaoController = {
-  // Adicionar usuário à organização
-  async adicionarUsuario(req, res) {
+  // Cria uma nova organização e torna o usuário admin
+  async criarOrganizacao(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();
-    
+
     try {
-      const { organizacaoId } = req.params;
-      const { name, email, password, role } = req.body;
+      const { name } = req.body;
+      const userId = req.user.id;
 
-      // Verifica organização
-      const organizacao = await Organizacao.findById(organizacaoId).session(session);
-      if (!organizacao) {
-        await session.abortTransaction();
-        return res.status(404).json({ message: 'Organização não encontrada' });
-      }
+      // Cria organização
+      const organizacao = new Organizacao({
+        name,
+        admin: userId,
+        conviteCode: crypto.randomBytes(8).toString('hex'), // Gera código
+        conviteExpiracao: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 dias
+      });
 
-      // Verifica se o usuário logado é admin
-      if (organizacao.admin.toString() !== req.user.id) {
-        await session.abortTransaction();
-        return res.status(403).json({ message: 'Acesso negado' });
-      }
+      const savedOrganizacao = await organizacao.save({ session });
 
-      // Validação de cargo
-      if (!['perito', 'assistente'].includes(role)) {
-        await session.abortTransaction();
-        return res.status(400).json({ message: 'Cargo inválido' });
-      }
-
-      // Verifica e-mail duplicado
-      const existingUser = await User.findOne({ email }).session(session);
-      if (existingUser) {
-        await session.abortTransaction();
-        return res.status(400).json({ message: 'E-mail já cadastrado' });
-      }
-
-      // Cria usuário
-      const user = new User({ name, email, password, role, organizacao: organizacaoId });
-      await user.save({ session });
-
-      // Atualiza organização
-      organizacao.users.push(user._id);
-      await organizacao.save({ session });
+      // Atualiza usuário para admin
+      await User.findByIdAndUpdate(
+        userId,
+        { role: 'administrador', organizacao: savedOrganizacao._id },
+        { session }
+      );
 
       await session.commitTransaction();
 
-      // Resposta sem a senha
-      const userResponse = {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      };
+      // Gera novo token com organização
+      const token = jwt.sign(
+        { id: userId, role: 'administrador', organizationId: savedOrganizacao._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
-      res.status(201).json({ message: 'Usuário adicionado', user: userResponse });
+      res.status(201).json({
+        message: 'Organização criada com sucesso!',
+        token,
+        organizacao: {
+          id: savedOrganizacao._id,
+          name: savedOrganizacao.name,
+          conviteCode: savedOrganizacao.conviteCode
+        }
+      });
 
     } catch (error) {
       await session.abortTransaction();
-      
-      if (error.name === 'ValidationError') {
-        const errors = Object.values(error.errors).map(err => err.message);
-        return res.status(400).json({ message: 'Erro de validação', errors });
-      }
-
-      console.error('Erro ao adicionar usuário:', error);
-      res.status(500).json({ 
-        message: 'Erro no servidor',
-        error: process.env.NODE_ENV === 'production' ? undefined : error.message 
-      });
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
     } finally {
       session.endSession();
     }
   },
 
-  // Obter detalhes da organização
-  async obterOrganizacao(req, res) {
-    try {
-      const organizacao = await Organizacao.findById(req.params.organizacaoId)
-        .populate('admin', 'name email')
-        .populate('users', 'name email role');
+  // Vincula um usuário existente a uma organização via código
+  async entrarOrganizacao(req, res) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-      if (!organizacao) {
-        return res.status(404).json({ message: 'Organização não encontrada' });
+    try {
+      const { codigoConvite, role } = req.body;
+      const userId = req.user.id;
+
+      // Valida código e cargo
+      const organizacao = await Organizacao.findOne({ conviteCode: codigoConvite }).session(session);
+      if (!organizacao || !['perito', 'assistente'].includes(role)) {
+        await session.abortTransaction();
+        return res.status(400).json({ message: 'Código ou cargo inválido' });
       }
 
-      res.json(organizacao);
-    } catch (error) {
-      console.error('Erro ao buscar organização:', error);
-      res.status(500).json({ 
-        message: 'Erro no servidor',
-        error: process.env.NODE_ENV === 'production' ? undefined : error.message 
-      });
-    }
-  },
+      // Atualiza usuário
+      await User.findByIdAndUpdate(
+        userId,
+        { role, organizacao: organizacao._id },
+        { session }
+      );
 
-  // Gerar código de convite
-  async gerarConvite(req, res) {
-    try {
-      const organizacao = await Organizacao.findById(req.params.organizacaoId);
-      
-      organizacao.conviteCode = crypto.randomBytes(8).toString('hex');
-      organizacao.conviteExpiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
-      
-      await organizacao.save();
+      organizacao.users.push(userId);
+      await organizacao.save({ session });
 
-      res.json({ 
-        codigo: organizacao.conviteCode,
-        expiracao: organizacao.conviteExpiracao 
+      await session.commitTransaction();
+
+      // Gera novo token
+      const token = jwt.sign(
+        { id: userId, role, organizationId: organizacao._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({
+        message: 'Você entrou na organização!',
+        token,
+        organizacao: {
+          id: organizacao._id,
+          name: organizacao.name
+        }
       });
+
     } catch (error) {
-      console.error('Erro ao gerar convite:', error);
-      res.status(500).json({ 
-        message: 'Erro no servidor',
-        error: process.env.NODE_ENV === 'production' ? undefined : error.message 
-      });
+      await session.abortTransaction();
+      res.status(500).json({ message: 'Erro no servidor', error: error.message });
+    } finally {
+      session.endSession();
     }
   }
 };

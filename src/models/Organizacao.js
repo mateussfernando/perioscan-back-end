@@ -4,33 +4,27 @@ const crypto = require('crypto');
 const organizacaoSchema = new mongoose.Schema({
   name: { 
     type: String, 
-    required: [true, 'O nome da organização é obrigatório'],
-    trim: true, 
-    minlength: [3, 'O nome deve ter pelo menos 3 caracteres']
+    required: [true, 'O nome da organização é obrigatório'] 
   },
   admin: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
-    required: [true, 'O admin é obrigatório'] 
+    required: true 
   },
   users: [{
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User'
+    ref: 'User' 
   }],
   conviteCode: {
     type: String,
-    unique: true,
-    default: function() {
-      return crypto.randomBytes(8).toString('hex');
-    }
+    unique: true
   },
   conviteExpiracao: {
-    type: Date,
-    default: () => Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 dias
+    type: Date
   }
 }, { timestamps: true });
 
-// Métodos (mantidos)
+// Métodos 
 organizacaoSchema.methods.hasUser = function(userId) {
   return this.users.includes(userId) || this.admin.equals(userId);
 };

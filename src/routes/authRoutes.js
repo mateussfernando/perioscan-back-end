@@ -4,7 +4,7 @@ const AuthController = require('../controllers/AuthController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Rotas públicas
-router.post('/registro/admin', AuthController.registroAdmin);
+router.post('/cadastro', AuthController.cadastroUsuario); 
 router.post('/registro/membro', AuthController.registroMembro);
 router.post('/login', AuthController.login);
 

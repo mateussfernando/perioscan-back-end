@@ -29,13 +29,11 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ['administrador', 'perito', 'assistente'],
-    required: true
   },
 
   organizacao: {  
     type: mongoose.Schema.Types.ObjectId,  
     ref: 'Organizacao', // Referência ao modelo de Organizacao 
-    required: [true, 'A organização do usuário é obrigatória']  
   }, 
 
 }, {  

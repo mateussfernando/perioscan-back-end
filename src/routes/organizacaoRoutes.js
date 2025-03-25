@@ -4,15 +4,10 @@ const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const OrganizacaoController = require('../controllers/OrganizacaoController');
 
-// Middleware para verificar admin
-const isAdmin = async (req, res, next) => {
-  const organizacao = await Organizacao.findById(req.params.organizacaoId);
-  if (organizacao?.admin.toString() === req.user.id) return next();
-  res.status(403).json({ message: 'Acesso negado' });
-};
+// Cria organização (após cadastro inicial)
+router.post('/organizacoes', authMiddleware, OrganizacaoController.criarOrganizacao);
 
-router.post('/organizacoes/:organizacaoId/usuarios', authMiddleware, isAdmin, OrganizacaoController.adicionarUsuario);
-router.get('/organizacoes/:organizacaoId', authMiddleware, OrganizacaoController.obterOrganizacao);
-router.post('/organizacoes/:organizacaoId/convites', authMiddleware, isAdmin, OrganizacaoController.gerarConvite);
+// Entra em organização via código (após cadastro inicial)
+router.post('/organizacoes/entrar', authMiddleware, OrganizacaoController.entrarOrganizacao);
 
 module.exports = router;
