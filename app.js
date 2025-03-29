@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
+const authRoutes = require("./src/routes/auth");
+const adminRoutes = require("./src/routes/admin");
 
 //Configuração Inicial
 const app = express();
@@ -18,6 +20,10 @@ mongoose
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
+
+// Rotas
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Rota Health para teste da conexão
 app.get("/health", (req, res) => {
