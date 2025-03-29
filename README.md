@@ -1,9 +1,3 @@
-# odontoscan-back-end
-#teste
+#mudança temporaria
 
-
-
-
-
-add dot 
-Co-authored-by: dilucas00 <gabrieldilucas00@gmail.com>
+Co-authored-by: Gabriel Di Lucas <gabrieldilucas00@gmail.com>
