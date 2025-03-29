@@ -3,7 +3,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
-const dotenv = require("dotenv");
 
 //Configuração Inicial
 const app = express();
@@ -11,9 +10,14 @@ const PORT = process.env.PORT || 3337;
 
 // Conexão com o MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("Conectado ao MongoDB"))
   .catch((err) => console.error("Erro na conexão com MongoDB:", err));
+
+// Middlewares
+app.use(cors());
+app.use(morgan("dev"));
+app.use(express.json());
 
 // Rota Health para teste da conexão
 app.get("/health", (req, res) => {
