@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
+
+// Import das rotas da aplicação
 const authRoutes = require("./src/routes/auth");
 const adminRoutes = require("./src/routes/admin");
 
