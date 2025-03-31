@@ -18,8 +18,14 @@ mongoose
   .then(() => console.log("Conectado ao MongoDB"))
   .catch((err) => console.error("Erro na conexão com MongoDB:", err));
 
-// Middlewares
-app.use(cors());
+  const corsOptions = {
+    origin: process.env.CLIENT_URL || "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+  };
+  
+  app.use(cors(corsOptions));
+  
 app.use(morgan("dev"));
 app.use(express.json());
 
