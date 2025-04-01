@@ -32,6 +32,7 @@ app.use(express.json());
 // Rotas
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
 
 
 // Rota Health para teste da conexão
@@ -52,5 +53,3 @@ app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Ambiente: ${process.env.NODE_ENV || "development"}`);
 });
-
-
