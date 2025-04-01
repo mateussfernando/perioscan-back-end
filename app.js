@@ -11,7 +11,7 @@ const adminRoutes = require("./src/routes/admin");
 const userRoutes = require("./src/routes/user");
 
 
-//Configuração Inicial
+// Configuração Inicial
 const app = express();
 const PORT = process.env.PORT || 3337;
 
@@ -19,8 +19,8 @@ const PORT = process.env.PORT || 3337;
 // Conexão com o MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("Conectado ao MongoDB"))
-  .catch((err) => console.error("Erro na conexão com MongoDB:", err));
+  .then(() => console.log("✅ Conectado ao MongoDB"))
+  .catch((err) => console.error("❌ Erro na conexão com MongoDB:", err));
 
 
 // Middlewares
@@ -30,9 +30,9 @@ app.use(express.json());
 
 
 // Rotas
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/auth", authRoutes); // Todas as rotas de autenticação (login, logout, reset password)
+app.use("/api/admin", adminRoutes); // Rotas administrativas
+app.use("/api/user", userRoutes); // Rotas de usuário (perfil, etc)
 
 
 // Rota Health para teste da conexão
@@ -53,3 +53,5 @@ app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Ambiente: ${process.env.NODE_ENV || "development"}`);
 });
+
+
