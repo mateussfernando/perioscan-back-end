@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors");
 const morgan = require("morgan");
 
 // Import das rotas
@@ -12,23 +11,18 @@ const userRoutes = require("./src/routes/user");
 const app = express();
 const PORT = process.env.PORT || 3337;
 
-// Conexão Moderna com MongoDB (Sem opções depreciadas)
+// Conexão com MongoDB (simplificada)
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB conectado com sucesso (Driver v6+)"))
-  .catch(err => console.error("❌ Falha na conexão com MongoDB:", err));
+  .then(() => console.log("✅ MongoDB conectado"))
+  .catch(err => console.error("❌ Erro no MongoDB:", err));
 
-// Configuração de CORS otimizada
-const allowedOrigins = [
-  "https://glowing-enigma-97644xjvgq65h75jw-3000.app.github.dev",
-  "http://localhost:3000"
-];
-
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-  credentials: true
-}));
+// ⚠️ Middleware para DESABILITAR CORS (apenas para testes!)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+});
 
 // Middlewares
 app.use(morgan("dev"));
@@ -41,15 +35,11 @@ app.use("/api/user", userRoutes);
 
 // Health Check
 app.get("/health", (req, res) => {
-  res.json({
-    status: "online",
-    dbStatus: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    timestamp: new Date().toISOString()
-  });
+  res.json({ status: "online", timestamp: new Date().toISOString() });
 });
 
 // Inicia servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`📡 Origens permitidas:`, allowedOrigins);
+  console.log(`🚀 Servidor rodando (CORS DESABILITADO) na porta ${PORT}`);
+  console.log("⚠️ ATENÇÃO: Esta configuração NÃO é segura para produção!");
 });
