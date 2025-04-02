@@ -4,54 +4,48 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
 
-
-// Import das rotas da aplicação
+// Import das rotas
 const authRoutes = require("./src/routes/auth");
 const adminRoutes = require("./src/routes/admin");
 const userRoutes = require("./src/routes/user");
 
-
-// Configuração Inicial
 const app = express();
 const PORT = process.env.PORT || 3337;
 
-
-// Conexão com o MongoDB
+// Conexão com MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Conectado ao MongoDB"))
-  .catch((err) => console.error("❌ Erro na conexão com MongoDB:", err));
+  .then(() => console.log("✅ MongoDB conectado"))
+  .catch(err => console.error("❌ Erro no MongoDB:", err));
 
+// CORS PERMITINDO TUDO (TESTES)
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"]
+}));
 
 // Middlewares
-app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
-
 // Rotas
-app.use("/api/auth", authRoutes); // Todas as rotas de autenticação (login, logout, reset password)
-app.use("/api/admin", adminRoutes); // Rotas administrativas
-app.use("/api/user", userRoutes); // Rotas de usuário (perfil, etc)
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
 
-
-// Rota Health para teste da conexão
+// Health Check
 app.get("/health", (req, res) => {
-  res.json({
+  res.json({ 
     status: "online",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
+    timestamp: new Date().toISOString()
   });
 });
 
+// Rota raiz
+app.get("/", (req, res) => res.send("Backend Online"));
 
-//Iniciar servidor
-app.get("/", (req, res) => {
-  res.end("O servidor esta rodando");
-});
+// Inicia servidor
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`Ambiente: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
-
-
