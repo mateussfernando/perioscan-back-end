@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const evidenceSchema = new mongoose.Schema(
   {
@@ -29,6 +29,15 @@ const evidenceSchema = new mongoose.Schema(
     imageUrl: {
       type: String,
     },
+    // Informações do Cloudinary
+    cloudinary: {
+      public_id: String,
+      url: String,
+      format: String,
+      width: Number,
+      height: Number,
+      bytes: Number,
+    },
     // Para evidência de texto
     content: {
       type: String,
@@ -41,10 +50,10 @@ const evidenceSchema = new mongoose.Schema(
   {
     timestamps: true,
     discriminatorKey: "evidenceType",
-  }
-);
+  },
+)
 
-const Evidence = mongoose.model("Evidence", evidenceSchema);
+const Evidence = mongoose.model("Evidence", evidenceSchema)
 
 // Discriminador para evidência de imagem
 const ImageEvidence = Evidence.discriminator(
@@ -70,8 +79,8 @@ const ImageEvidence = Evidence.discriminator(
         },
       },
     ],
-  })
-);
+  }),
+)
 
 // Discriminador para evidência de texto
 const TextEvidence = Evidence.discriminator(
@@ -86,7 +95,8 @@ const TextEvidence = Evidence.discriminator(
       enum: ["relato", "depoimento", "descrição técnica", "outro"],
       default: "outro",
     },
-  })
-);
+  }),
+)
 
-export { Evidence, ImageEvidence, TextEvidence };
+export { Evidence, ImageEvidence, TextEvidence }
+

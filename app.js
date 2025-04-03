@@ -8,13 +8,13 @@ import path from "path"
 import { fileURLToPath } from "url"
 
 // Importação de rotas
-import authRoutes from "./routes/auth.routes.js"
-import userRoutes from "./routes/user.routes.js"
-import caseRoutes from "./routes/case.routes.js"
-import evidenceRoutes from "./routes/evidence.routes.js"
-import reportRoutes from "./routes/report.routes.js"
-import comparisonRoutes from "./routes/comparison.routes.js"
-import uploadRoutes from "./routes/upload.routes.js"
+import authRoutes from "./src/routes/auth.routes.js"
+import userRoutes from "./src/routes/user.routes.js"
+import caseRoutes from "./src/routes/case.routes.js"
+import evidenceRoutes from "./src/routes/evidence.routes.js"
+import reportRoutes from "./src/routes/report.routes.js"
+import comparisonRoutes from "./src/routes/comparison.routes.js"
+import uploadRoutes from "./src/routes/upload.routes.js"
 
 // Carrega variáveis de ambiente
 dotenv.config()
