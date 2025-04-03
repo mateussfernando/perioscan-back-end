@@ -1,11 +1,11 @@
-import cloudinary from "cloudinary"
+import { v2 as cloudinary } from "cloudinary"
 import dotenv from "dotenv"
 
 // Carrega variáveis de ambiente
 dotenv.config()
 
 // Configuração do Cloudinary
-cloudinary.v2.config({
+cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
@@ -20,7 +20,7 @@ cloudinary.v2.config({
 export const uploadImage = async (filePath, folder = "forensic-dental") => {
   try {
     // Faz upload da imagem para o Cloudinary
-    const result = await cloudinary.v2.uploader.upload(filePath, {
+    const result = await cloudinary.uploader.upload(filePath, {
       folder: folder,
       resource_type: "auto",
       use_filename: true,
@@ -48,7 +48,7 @@ export const uploadImage = async (filePath, folder = "forensic-dental") => {
  */
 export const deleteImage = async (publicId) => {
   try {
-    const result = await cloudinary.v2.uploader.destroy(publicId)
+    const result = await cloudinary.uploader.destroy(publicId)
     return result
   } catch (error) {
     console.error("Cloudinary delete error:", error)
@@ -56,5 +56,5 @@ export const deleteImage = async (publicId) => {
   }
 }
 
-export default cloudinary.v2
+export default cloudinary
 
