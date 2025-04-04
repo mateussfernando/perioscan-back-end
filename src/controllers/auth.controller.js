@@ -16,6 +16,8 @@ export const register = asyncHandler(async (req, res, next) => {
     role,
   })
 
+  console.log("Usuario criado com sucesso!,","com email:", user.email)
+
   sendTokenResponse(user, 201, res)
 })
 
