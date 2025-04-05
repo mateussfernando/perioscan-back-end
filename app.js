@@ -28,16 +28,31 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // Middlewares
-app.use(cors({
-  origin: [
-    'https://glowing-enigma-97644xjvgq65h75jw-3000.app.github.dev',
-    'http://localhost:3000'
-    // Adicione outras origens conforme necessário
-  ],
-  credentials: true, // Importante para permitir cookies/credenciais
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}))
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://glowing-enigma-97644xjvgq65h75jw-3000.app.github.dev',
+
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir requisições sem origem 
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.log('Origem bloqueada pelo CORS:', origin);
+      callback(new Error('Não permitido pela política de CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
 app.use(express.json({ limit: "50mb" }))
 app.use(express.urlencoded({ extended: true, limit: "50mb" }))
 app.use(helmet())
