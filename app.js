@@ -15,6 +15,8 @@ import evidenceRoutes from "./src/routes/evidence.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
 import comparisonRoutes from "./src/routes/comparison.routes.js"
 import uploadRoutes from "./src/routes/upload.routes.js"
+import patientRoutes from "./src/routes/patient.routes.js"
+
 
 // Carrega variáveis de ambiente
 dotenv.config()
@@ -83,6 +85,7 @@ app.use("/api/evidence", evidenceRoutes)
 app.use("/api/reports", reportRoutes)
 app.use("/api/comparisons", comparisonRoutes)
 app.use("/api/upload", uploadRoutes)
+app.use("/api/patients", patientRoutes)
 
 // Rota raiz
 app.get("/", (req, res) => {
