@@ -1,3 +1,5 @@
+// routes/case.routes.js
+
 import express from "express";
 import {
   getCases,
@@ -5,6 +7,8 @@ import {
   createCase,
   updateCase,
   deleteCase,
+  getCaseStats,
+  searchCases
 } from "../controllers/case.controller.js";
 import { getCaseEvidence } from "../controllers/evidence.controller.js";
 import { getCaseReports } from "../controllers/report.controller.js";
@@ -17,7 +21,13 @@ const router = express.Router();
 
 router.use(protect);
 
-// Case routes
+// Rota para estatísticas
+router.get("/stats", getCaseStats);
+
+// Rota para busca avançada
+router.post("/search", searchCases);
+
+// Rotas de casos
 router
   .route("/")
   .get(
@@ -35,13 +45,13 @@ router
   .put(authorize("admin", "perito"), updateCase)
   .delete(authorize("admin", "perito"), deleteCase);
 
-// Evidence routes for a case
+// Evidências para um caso
 router.route("/:caseId/evidence").get(getCaseEvidence);
 
-// Report routes for a case
+// Laudos para um caso
 router.route("/:caseId/reports").get(getCaseReports);
 
-// Comparison routes for a case
+// Comparações para um caso
 router.route("/:caseId/comparisons").get(getCaseComparisons);
 
 export default router;
