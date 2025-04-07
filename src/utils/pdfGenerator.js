@@ -58,7 +58,7 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
           Author: expert.name,
           Subject: "Laudo Pericial Odontológico",
           Keywords: "odontologia legal, laudo, pericial, forense",
-          Creator: "Sistema de Gestão Odontológica Forense",
+          Creator: "Sistema de Gestão Odontológica Forense - PerioScan",
           CreationDate: new Date(),
         },
         autoFirstPage: true,
@@ -83,7 +83,7 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
 
       // Adicionar título do documento
       doc
-        .fontSize(18)
+        .fontSize(17)
         .font(fonts.bold)
         .fillColor(colors.primary)
         .text("LAUDO PERICIAL ODONTOLÓGICO", { align: "center" })
@@ -176,14 +176,7 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
       doc.on("pageAdded", () => {
         pageCount++
       })
-
-      // Adicionar número da página atual no rodapé
-      doc
-        .fontSize(8)
-        .font(fonts.normal)
-        .fillColor(colors.lightText)
-        .text(`Página 1 de ${pageCount}`, 50, doc.page.height - 50, { align: "center" })
-
+     
       // Finalizar o documento
       doc.end()
     } catch (error) {
@@ -356,12 +349,6 @@ const addFooter = (doc, expert, report) => {
     .text(expert.name, 50, pageBottom + 15, { align: "center" })
     .text(`Perito Odontologista - ${expert.email}`, 50, pageBottom + 30, { align: "center" })
 
-  // Adicionar data e local
-  doc
-    .moveDown()
-    .text(`Local e data: __________________, ${moment().format("DD [de] MMMM [de] YYYY")}`, 50, pageBottom + 50, {
-      align: "center",
-    })
 }
 
 /**
