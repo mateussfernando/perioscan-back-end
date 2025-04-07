@@ -1,4 +1,4 @@
-import express from "express";
+import express from "express"
 import {
   getReports,
   getReport,
@@ -6,14 +6,21 @@ import {
   updateReport,
   deleteReport,
   exportReportPDF,
-} from "../controllers/report.controller.js";
-import Report from "../models/report.model.js";
-import advancedResults from "../middleware/advancedResults.middleware.js";
-import { protect, authorize } from "../middleware/auth.middleware.js";
+  signReport,
+  verifyReportSignature,
+  verifyReportByHash,
+} from "../controllers/report.controller.js"
+import Report from "../models/report.model.js"
+import advancedResults from "../middleware/advancedResults.middleware.js"
+import { protect, authorize } from "../middleware/auth.middleware.js"
 
-const router = express.Router();
+const router = express.Router()
 
-router.use(protect);
+// Rotas públicas
+router.route("/verify/:id").get(verifyReportByHash)
+
+// Rotas protegidas
+router.use(protect)
 
 router
   .route("/")
@@ -22,17 +29,24 @@ router
       { path: "expertResponsible", select: "name email" },
       { path: "case", select: "title status" },
     ]),
-    getReports
+    getReports,
   )
-  .post(authorize("admin", "perito"), createReport);
+  .post(authorize("admin", "perito"), createReport)
 
 router
   .route("/:id")
   .get(getReport)
   .put(authorize("admin", "perito"), updateReport)
-  .delete(authorize("admin", "perito"), deleteReport);
+  .delete(authorize("admin", "perito"), deleteReport)
 
 // Rota para exportar laudo como PDF
-router.route("/:id/pdf").get(exportReportPDF);
+router.route("/:id/pdf").get(exportReportPDF)
 
-export default router;
+// Rota para assinar digitalmente um laudo
+router.route("/:id/sign").post(authorize("admin", "perito"), signReport)
+
+// Rota para verificar assinatura digital
+router.route("/:id/verify").get(verifyReportSignature)
+
+export default router
+

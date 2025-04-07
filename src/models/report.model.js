@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const reportSchema = new mongoose.Schema(
   {
@@ -44,6 +44,8 @@ const reportSchema = new mongoose.Schema(
       },
       signatureDate: Date,
       signatureData: String,
+      contentHash: String,
+      verificationCode: String,
     },
     // Campos adicionais para o laudo
     caseNumber: {
@@ -55,12 +57,71 @@ const reportSchema = new mongoose.Schema(
     methodology: {
       type: String,
     },
+    // Histórico de versões
+    versions: [
+      {
+        content: String,
+        conclusion: String,
+        status: String,
+        modifiedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        modifiedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
+  },
+)
+
+// Middleware para salvar versão anterior antes de atualizar
+reportSchema.pre("findOneAndUpdate", async function (next) {
+  try {
+    // Obter documento atual
+    const docToUpdate = await this.model.findOne(this.getQuery())
+
+    if (docToUpdate) {
+      // Obter dados da atualização
+      const update = this.getUpdate()
+
+      // Se houver alterações no conteúdo ou conclusão, salvar versão
+      if (update.content !== undefined || update.conclusion !== undefined || update.status !== undefined) {
+        // Criar nova versão
+        const newVersion = {
+          content: docToUpdate.content,
+          conclusion: docToUpdate.conclusion,
+          status: docToUpdate.status,
+          modifiedAt: new Date(),
+        }
+
+        // Adicionar usuário que está modificando, se disponível
+        if (update.$set && update.$set.modifiedBy) {
+          newVersion.modifiedBy = update.$set.modifiedBy
+        }
+
+        // Adicionar à lista de versões
+        if (!docToUpdate.versions) {
+          update.$set = update.$set || {}
+          update.$set.versions = [newVersion]
+        } else {
+          update.$push = update.$push || {}
+          update.$push.versions = newVersion
+        }
+      }
+    }
+
+    next()
+  } catch (error) {
+    next(error)
   }
-);
+})
 
-const Report = mongoose.model("Report", reportSchema);
+const Report = mongoose.model("Report", reportSchema)
 
-export default Report;
+export default Report
+
