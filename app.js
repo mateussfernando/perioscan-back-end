@@ -7,6 +7,12 @@ import morgan from "morgan"
 import path from "path"
 import { fileURLToPath } from "url"
 
+
+
+// Importar configuração do Swagger
+import setupSwagger from "./src/utils/swagger.js"
+
+
 // Importação de rotas
 import authRoutes from "./src/routes/auth.routes.js"
 import userRoutes from "./src/routes/user.routes.js"
@@ -28,6 +34,15 @@ const PORT = process.env.PORT || 5000
 // Obter o diretório atual
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Desabilitar para o Swagger UI funcionar corretamente
+  }),
+)
+
+//Configurações do swagger
+setupSwagger(app)
 
 // Middlewares
 // Configuração COMPLETA do CORS
@@ -100,9 +115,14 @@ app.use((err, req, res, next) => {
   })
 })
 
+app.get("/health", (req, res) => {
+  res.status(200).send("OK")
+})
+
 // Inicia servidor
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
+  console.log(`Swagger documentation available at http://localhost:${PORT}/api-docs`)
 })
 
 export default app
