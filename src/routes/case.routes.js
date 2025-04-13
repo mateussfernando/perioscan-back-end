@@ -2,7 +2,7 @@ import express from "express"
 import { getCases, getCase, createCase, updateCase, deleteCase } from "../controllers/case.controller.js"
 import { getCaseEvidence } from "../controllers/evidence.controller.js"
 import { getCaseReports } from "../controllers/report.controller.js"
-import { getCaseComparisons } from "../controllers/comparison.controller.js"
+// Removida dependência do comparison.controller.js
 import { getCasePatients } from "../controllers/patient.controller.js"
 import Case from "../models/case.model.js"
 import advancedResults from "../middleware/advancedResults.middleware.js"
@@ -24,7 +24,7 @@ router.use(protect)
  * /api/cases:
  *   get:
  *     summary: Obter todos os casos
- *     description: Retorna uma lista paginada de casos. Usuários não-admin só veem casos atribuídos a eles.
+ *     description: Retorna uma lista paginada de casos. Usuários não-admin só veem casos criados por eles.
  *     tags: [Casos]
  *     security:
  *       - bearerAuth: []
@@ -88,6 +88,7 @@ router.use(protect)
  *             required:
  *               - title
  *               - description
+ *               - location
  *             properties:
  *               title:
  *                 type: string
@@ -95,9 +96,9 @@ router.use(protect)
  *               description:
  *                 type: string
  *                 description: Descrição detalhada do caso
- *               assignedTo:
+ *               location:
  *                 type: string
- *                 description: ID do usuário responsável pelo caso (opcional, padrão é o usuário atual)
+ *                 description: Local do ocorrido
  *               status:
  *                 type: string
  *                 enum: [em andamento, finalizado, arquivado]
@@ -125,13 +126,7 @@ router.use(protect)
  */
 router
   .route("/")
-  .get(
-    advancedResults(Case, [
-      { path: "assignedTo", select: "name email" },
-      { path: "createdBy", select: "name email" },
-    ]),
-    getCases,
-  )
+  .get(advancedResults(Case, [{ path: "createdBy", select: "name email" }]), getCases)
   .post(authorize("admin", "perito"), createCase)
 
 /**
@@ -196,9 +191,9 @@ router
  *               status:
  *                 type: string
  *                 enum: [em andamento, finalizado, arquivado]
- *               assignedTo:
+ *               location:
  *                 type: string
- *                 description: ID do usuário (apenas admin pode alterar)
+ *                 description: Local do ocorrido
  *     responses:
  *       200:
  *         description: Caso atualizado com sucesso
@@ -237,10 +232,6 @@ router
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *
  *               type: object
  *               properties:
  *                 success:
@@ -329,6 +320,10 @@ router.route("/:caseId/evidence").get(getCaseEvidence)
  *               type: object
  *               properties:
  *                 success:
+ *                   type:
+ *               type: object
+ *               properties:
+ *                 success:
  *                   type: boolean
  *                   example: true
  *                 count:
@@ -386,7 +381,8 @@ router.route("/:caseId/reports").get(getCaseReports)
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.route("/:caseId/comparisons").get(getCaseComparisons)
+// Rota de comparações removida temporariamente
+// router.route("/:caseId/comparisons").get(getCaseComparisons)
 
 /**
  * @swagger
@@ -431,4 +427,3 @@ router.route("/:caseId/comparisons").get(getCaseComparisons)
 router.route("/:caseId/patients").get(getCasePatients)
 
 export default router
-

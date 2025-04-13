@@ -18,17 +18,16 @@ const caseSchema = new mongoose.Schema(
       enum: ["em andamento", "finalizado", "arquivado"],
       default: "em andamento",
     },
+    location: {
+      type: String,
+      trim: true,
+    },
     openDate: {
       type: Date,
       default: Date.now,
     },
     closeDate: {
       type: Date,
-    },
-    assignedTo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -69,4 +68,3 @@ caseSchema.virtual("patients", {
 const Case = mongoose.model("Case", caseSchema)
 
 export default Case
-

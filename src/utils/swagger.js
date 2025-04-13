@@ -78,7 +78,7 @@ const options = {
         },
         Case: {
           type: "object",
-          required: ["title", "description", "assignedTo"],
+          required: ["title", "description", "location"],
           properties: {
             id: {
               type: "string",
@@ -91,6 +91,10 @@ const options = {
             description: {
               type: "string",
               description: "Descrição detalhada do caso",
+            },
+            location: {
+              type: "string",
+              description: "Local do ocorrido",
             },
             status: {
               type: "string",
@@ -106,10 +110,6 @@ const options = {
               type: "string",
               format: "date-time",
               description: "Data de fechamento do caso",
-            },
-            assignedTo: {
-              type: "string",
-              description: "ID do usuário responsável pelo caso",
             },
             createdBy: {
               type: "string",
@@ -307,6 +307,83 @@ const options = {
             },
           },
         },
+        EvidenceReport: {
+          type: "object",
+          required: ["title", "content", "evidence", "findings", "expertResponsible"],
+          properties: {
+            id: {
+              type: "string",
+              description: "ID do relatório de evidência gerado automaticamente",
+            },
+            title: {
+              type: "string",
+              description: "Título do relatório de evidência",
+            },
+            content: {
+              type: "string",
+              description: "Conteúdo principal do relatório de evidência",
+            },
+            evidence: {
+              type: "string",
+              description: "ID da evidência analisada",
+            },
+            case: {
+              type: "string",
+              description: "ID do caso ao qual a evidência pertence",
+            },
+            expertResponsible: {
+              type: "string",
+              description: "ID do perito responsável pelo relatório",
+            },
+            findings: {
+              type: "string",
+              description: "Descobertas da análise da evidência",
+            },
+            status: {
+              type: "string",
+              description: "Status atual do relatório",
+              enum: ["rascunho", "finalizado", "assinado"],
+            },
+            methodology: {
+              type: "string",
+              description: "Metodologia utilizada na análise",
+            },
+            conclusion: {
+              type: "string",
+              description: "Conclusão do relatório",
+            },
+            digitalSignature: {
+              type: "object",
+              properties: {
+                signedBy: {
+                  type: "string",
+                  description: "ID do usuário que assinou o relatório",
+                },
+                signatureDate: {
+                  type: "string",
+                  format: "date-time",
+                  description: "Data e hora da assinatura",
+                },
+                signatureData: {
+                  type: "string",
+                  description: "Dados da assinatura digital",
+                },
+                contentHash: {
+                  type: "string",
+                  description: "Hash do conteúdo do documento",
+                },
+                verificationCode: {
+                  type: "string",
+                  description: "Código de verificação da assinatura",
+                },
+              },
+            },
+            evidenceMetadata: {
+              type: "object",
+              description: "Metadados específicos do tipo de evidência",
+            },
+          },
+        },
       },
       responses: {
         UnauthorizedError: {
@@ -375,4 +452,3 @@ const setupSwagger = (app) => {
 }
 
 export default setupSwagger
-

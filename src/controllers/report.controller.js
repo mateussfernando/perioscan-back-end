@@ -37,11 +37,7 @@ export const getReport = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual este laudo pertence
   const forensicCase = await Case.findById(report.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`User ${req.user.id} is not authorized to access this report`)
     error.statusCode = 403
     return next(error)
@@ -70,11 +66,7 @@ export const createReport = asyncHandler(async (req, res, next) => {
   }
 
   // Verificar se o usuário tem acesso ao caso
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`User ${req.user.id} is not authorized to create reports for this case`)
     error.statusCode = 403
     return next(error)
@@ -103,11 +95,7 @@ export const updateReport = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual este laudo pertence
   const forensicCase = await Case.findById(report.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`User ${req.user.id} is not authorized to update this report`)
     error.statusCode = 403
     return next(error)
@@ -159,11 +147,7 @@ export const deleteReport = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual este laudo pertence
   const forensicCase = await Case.findById(report.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`User ${req.user.id} is not authorized to delete this report`)
     error.statusCode = 403
     return next(error)
@@ -197,11 +181,7 @@ export const getCaseReports = asyncHandler(async (req, res, next) => {
   }
 
   // Verificar se o usuário tem acesso ao caso
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`User ${req.user.id} is not authorized to access reports for this case`)
     error.statusCode = 403
     return next(error)
@@ -234,11 +214,7 @@ export const exportReportPDF = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual este laudo pertence
   const forensicCase = await Case.findById(report.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`User ${req.user.id} is not authorized to access this report`)
     error.statusCode = 403
     return next(error)
@@ -297,11 +273,7 @@ export const signReport = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual este laudo pertence
   const forensicCase = await Case.findById(report.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`User ${req.user.id} is not authorized to sign this report`)
     error.statusCode = 403
     return next(error)
@@ -394,4 +366,3 @@ export const verifyReportByHash = asyncHandler(async (req, res, next) => {
     data: verificationResult,
   })
 })
-

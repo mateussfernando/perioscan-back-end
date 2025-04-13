@@ -7,11 +7,8 @@ import morgan from "morgan"
 import path from "path"
 import { fileURLToPath } from "url"
 
-
-
 // Importar configuração do Swagger
 import setupSwagger from "./src/utils/swagger.js"
-
 
 // Importação de rotas
 import authRoutes from "./src/routes/auth.routes.js"
@@ -19,10 +16,11 @@ import userRoutes from "./src/routes/user.routes.js"
 import caseRoutes from "./src/routes/case.routes.js"
 import evidenceRoutes from "./src/routes/evidence.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
-import comparisonRoutes from "./src/routes/comparison.routes.js"
+// Rotas de comparação removidas temporariamente
+// import comparisonRoutes from "./src/routes/comparison.routes.js"
 import uploadRoutes from "./src/routes/upload.routes.js"
 import patientRoutes from "./src/routes/patient.routes.js"
-
+import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js" // Nova importação
 
 // Carrega variáveis de ambiente
 dotenv.config()
@@ -46,7 +44,7 @@ setupSwagger(app)
 
 // Middlewares
 
-app.use(cors());
+app.use(cors())
 
 app.use(express.json({ limit: "50mb" }))
 app.use(express.urlencoded({ extended: true, limit: "50mb" }))
@@ -76,9 +74,11 @@ app.use("/api/users", userRoutes)
 app.use("/api/cases", caseRoutes)
 app.use("/api/evidence", evidenceRoutes)
 app.use("/api/reports", reportRoutes)
-app.use("/api/comparisons", comparisonRoutes)
+// Rotas de comparação removidas temporariamente
+// app.use("/api/comparisons", comparisonRoutes)
 app.use("/api/upload", uploadRoutes)
 app.use("/api/patients", patientRoutes)
+app.use("/api/evidence-reports", evidenceReportRoutes) // Nova rota
 
 // Rota raiz
 app.get("/", (req, res) => {
@@ -106,4 +106,3 @@ app.listen(PORT, () => {
 })
 
 export default app
-

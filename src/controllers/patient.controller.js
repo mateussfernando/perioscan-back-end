@@ -93,6 +93,13 @@ export const createPatient = asyncHandler(async (req, res, next) => {
       return next(error)
     }
 
+    // Verificar se o usuário tem acesso ao caso
+    if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
+      const error = new Error(`Usuário ${req.user.id} não está autorizado a vincular pacientes a este caso`)
+      error.statusCode = 403
+      return next(error)
+    }
+
     // Preparar array de casos
     req.body.cases = [
       {
@@ -216,11 +223,7 @@ export const addCaseToPatient = asyncHandler(async (req, res, next) => {
   }
 
   // Verificar se o usuário tem acesso ao caso
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`Usuário ${req.user.id} não está autorizado a vincular pacientes a este caso`)
     error.statusCode = 403
     return next(error)
@@ -260,11 +263,7 @@ export const removeCaseFromPatient = asyncHandler(async (req, res, next) => {
   }
 
   // Verificar se o usuário tem acesso ao caso
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`Usuário ${req.user.id} não está autorizado a desvincular pacientes deste caso`)
     error.statusCode = 403
     return next(error)
@@ -449,11 +448,7 @@ export const getCasePatients = asyncHandler(async (req, res, next) => {
   }
 
   // Verificar se o usuário tem acesso ao caso
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     const error = new Error(`Usuário ${req.user.id} não está autorizado a acessar pacientes deste caso`)
     error.statusCode = 403
     return next(error)
@@ -469,4 +464,3 @@ export const getCasePatients = asyncHandler(async (req, res, next) => {
     data: patients,
   })
 })
-

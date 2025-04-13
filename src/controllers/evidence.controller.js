@@ -26,11 +26,7 @@ export const getEvidence = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual esta evidência pertence
   const forensicCase = await Case.findById(evidence.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     return next(new ErrorResponse(`User ${req.user.id} is not authorized to access this evidence`, 403))
   }
 
@@ -55,11 +51,7 @@ export const createEvidence = asyncHandler(async (req, res, next) => {
   }
 
   // Verificar se o usuário tem acesso ao caso
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     return next(new ErrorResponse(`User ${req.user.id} is not authorized to add evidence to this case`, 403))
   }
 
@@ -101,11 +93,7 @@ export const updateEvidence = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual esta evidência pertence
   const forensicCase = await Case.findById(evidence.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this evidence`, 403))
   }
 
@@ -151,11 +139,7 @@ export const deleteEvidence = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário tem acesso ao caso ao qual esta evidência pertence
   const forensicCase = await Case.findById(evidence.case)
 
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     return next(new ErrorResponse(`User ${req.user.id} is not authorized to delete this evidence`, 403))
   }
 
@@ -187,11 +171,7 @@ export const getCaseEvidence = asyncHandler(async (req, res, next) => {
   }
 
   // Verificar se o usuário tem acesso ao caso
-  if (
-    forensicCase.assignedTo.toString() !== req.user.id &&
-    req.user.role !== "admin" &&
-    forensicCase.createdBy.toString() !== req.user.id
-  ) {
+  if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     return next(new ErrorResponse(`User ${req.user.id} is not authorized to access evidence for this case`, 403))
   }
 
@@ -203,4 +183,3 @@ export const getCaseEvidence = asyncHandler(async (req, res, next) => {
     data: evidence,
   })
 })
-

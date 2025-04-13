@@ -1,18 +1,19 @@
-import express from "express";
+import express from "express"
 import {
   getAllEvidence,
   getEvidence,
   createEvidence,
   updateEvidence,
   deleteEvidence,
-} from "../controllers/evidence.controller.js";
-import { Evidence } from "../models/evidence.model.js";
-import advancedResults from "../middleware/advancedResults.middleware.js";
-import { protect, authorize } from "../middleware/auth.middleware.js";
+} from "../controllers/evidence.controller.js"
+import { getEvidenceReportsByEvidence } from "../controllers/evidenceReport.controller.js"
+import { Evidence } from "../models/evidence.model.js"
+import advancedResults from "../middleware/advancedResults.middleware.js"
+import { protect, authorize } from "../middleware/auth.middleware.js"
 
-const router = express.Router();
+const router = express.Router()
 
-router.use(protect);
+router.use(protect)
 
 router
   .route("/")
@@ -21,14 +22,17 @@ router
       { path: "collectedBy", select: "name email" },
       { path: "case", select: "title status" },
     ]),
-    getAllEvidence
+    getAllEvidence,
   )
-  .post(authorize("admin", "perito", "assistente"), createEvidence);
+  .post(authorize("admin", "perito", "assistente"), createEvidence)
 
 router
   .route("/:id")
   .get(getEvidence)
   .put(authorize("admin", "perito", "assistente"), updateEvidence)
-  .delete(authorize("admin", "perito"), deleteEvidence);
+  .delete(authorize("admin", "perito"), deleteEvidence)
 
-export default router;
+// Nova rota para obter relatórios de uma evidência específica
+router.route("/:evidenceId/reports").get(getEvidenceReportsByEvidence)
+
+export default router
