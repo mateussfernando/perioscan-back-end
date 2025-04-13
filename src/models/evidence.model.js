@@ -25,7 +25,13 @@ const evidenceSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // Para evidência de imagem
+    
+    location: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    
     imageUrl: {
       type: String,
     },
@@ -99,4 +105,3 @@ const TextEvidence = Evidence.discriminator(
 )
 
 export { Evidence, ImageEvidence, TextEvidence }
-
