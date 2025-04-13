@@ -320,10 +320,6 @@ router.route("/:caseId/evidence").get(getCaseEvidence)
  *               type: object
  *               properties:
  *                 success:
- *                   type:
- *               type: object
- *               properties:
- *                 success:
  *                   type: boolean
  *                   example: true
  *                 count:
