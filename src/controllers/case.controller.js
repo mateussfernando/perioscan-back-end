@@ -139,7 +139,7 @@ export const deleteCase = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse(`User ${req.user.id} is not authorized to delete this case`, 403))
   }
 
-  await forensicCase.remove()
+  await Case.deleteOne({ _id: req.params.id })
 
   res.status(200).json({
     success: true,
