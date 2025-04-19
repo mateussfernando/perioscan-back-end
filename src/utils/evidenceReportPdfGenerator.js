@@ -532,20 +532,29 @@ const addFooter = (doc, expert, report, margin, width) => {
   // Ir para a última página
   doc.switchToPage(doc.bufferedPageRange().count - 1)
 
-  // Posicionar na parte inferior da página
-  const footerY = doc.page.height - 100
+  // Posicionar na parte inferior da página com mais espaço
+  const footerY = doc.page.height - 150
 
+  // Adicionar uma linha separadora sutil antes da assinatura
+  doc
+    .strokeColor(colors.lightText)
+    .lineWidth(0.5)
+    .moveTo(margin + width / 4, footerY - 10)
+    .lineTo(margin + (width * 3) / 4, footerY - 10)
+    .stroke()
+
+  // Adicionar mais espaço antes da assinatura
   doc
     .fontSize(10)
     .text("_______________________________", margin, footerY, {
       align: "center",
       width: width,
     })
-    .text(expert.name, margin, doc.y, {
+    .text(expert.name, margin, doc.y + 5, {
       align: "center",
       width: width,
     })
-    .text(`Perito Odontologista - ${expert.email}`, margin, doc.y, {
+    .text(`Perito Odontologista - ${expert.email}`, margin, doc.y + 5, {
       align: "center",
       width: width,
     })
