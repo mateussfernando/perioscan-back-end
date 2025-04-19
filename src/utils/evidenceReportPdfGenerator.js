@@ -52,6 +52,7 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
         size: "A4",
         margin: 50,
         bufferPages: true,
+        autoFirstPage: true,
         info: {
           Title: `Relatório de Evidência - ${report.title}`,
           Author: expert.name,
@@ -65,35 +66,47 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
       doc.on("data", buffers.push.bind(buffers))
       doc.on("end", () => resolve(Buffer.concat(buffers)))
 
-      // Marca d'água
+      // Definir margens consistentes
+      const margin = 50
+      const contentWidth = doc.page.width - margin * 2
+
+      // Marca d'água (em camada inferior)
       if (report.status !== "assinado") {
         addWatermark(doc, report.status)
       }
 
       // Cabeçalho
-      await addHeader(doc, options.logoPath)
+      const headerHeight = await addHeader(doc, options.logoPath, margin)
+      let currentY = headerHeight + 20 // Posição Y após o cabeçalho
 
       // Título principal
       doc
         .fontSize(16)
         .font(fonts.bold)
         .fillColor(colors.primary)
-        .text("RELATÓRIO DE ANÁLISE DE EVIDÊNCIA", { align: "center" })
-        .moveDown(0.5)
+        .text("RELATÓRIO DE ANÁLISE DE EVIDÊNCIA", margin, currentY, {
+          align: "center",
+          width: contentWidth,
+        })
+
+      currentY = doc.y + 15 // Atualizar posição Y após o título
 
       // Seção do Caso
-      addSectionTitle(doc, "INFORMAÇÕES DO CASO")
+      currentY = addSectionTitle(doc, "INFORMAÇÕES DO CASO", margin, currentY)
+
       const caseInfo = [
         ["Número do Caso:", forensicCase._id.toString()],
         ["Título do Caso:", forensicCase.title || "Sem título"],
         ["Status do Caso:", formatStatus(forensicCase.status)],
         ["Data de Abertura:", moment(forensicCase.openDate).format("DD/MM/YYYY")],
       ]
-      addTable(doc, caseInfo)
-      doc.moveDown(0.5)
+
+      currentY = addTable(doc, caseInfo, margin, currentY, contentWidth)
+      currentY += 15 // Espaço após a tabela
 
       // Seção da Evidência
-      addSectionTitle(doc, "DETALHES DA EVIDÊNCIA")
+      currentY = addSectionTitle(doc, "DETALHES DA EVIDÊNCIA", margin, currentY)
+
       const evidenceInfo = [
         ["ID da Evidência:", evidence._id.toString()],
         ["Tipo de Evidência:", evidence.type === "image" ? "Imagem" : "Texto"],
@@ -130,18 +143,30 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
         )
       }
 
-      addTable(doc, evidenceInfo)
-      doc.moveDown(0.5)
+      currentY = addTable(doc, evidenceInfo, margin, currentY, contentWidth)
+      currentY += 15 // Espaço após a tabela
 
-      // Conteúdo da Evidência
+      // Conteúdo da Evidência - IMAGEM
       if (evidence.type === "image" && evidence.imageUrl) {
-        try {
-          addSectionTitle(doc, "IMAGEM DA EVIDÊNCIA")
+        currentY = addSectionTitle(doc, "IMAGEM DA EVIDÊNCIA", margin, currentY)
 
-          // Verificar se a URL da imagem é acessível
+        try {
+          // Pré-verificar se há espaço suficiente para a imagem
+          const estimatedImageHeight = 200 // Altura estimada para a imagem
+
+          // Se não houver espaço suficiente, avançar para a próxima página
+          if (currentY + estimatedImageHeight > doc.page.height - 100) {
+            doc.addPage()
+            currentY = margin
+          }
+
+          // Tentar baixar a imagem
           let imageBuffer = null
           try {
-            const response = await axios.get(evidence.imageUrl, { responseType: "arraybuffer" })
+            const response = await axios.get(evidence.imageUrl, {
+              responseType: "arraybuffer",
+              timeout: 5000, // Timeout de 5 segundos
+            })
             imageBuffer = Buffer.from(response.data, "binary")
           } catch (error) {
             console.error("Erro ao baixar imagem:", error.message)
@@ -149,8 +174,8 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
 
           if (imageBuffer) {
             // Calcular dimensões para manter a proporção
-            const maxWidth = doc.page.width - 100
-            const maxHeight = 200
+            const maxWidth = contentWidth
+            const maxHeight = 250 // Altura máxima para a imagem
 
             // Usar dimensões da imagem do Cloudinary se disponíveis
             const imgWidth = evidence.cloudinary?.width || 800
@@ -162,56 +187,88 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
             const finalHeight = imgHeight * ratio
 
             // Centralizar a imagem
-            const xPos = (doc.page.width - finalWidth) / 2
+            const xPos = margin + (contentWidth - finalWidth) / 2
 
             // Adicionar a imagem
-            doc.image(imageBuffer, xPos, doc.y, {
+            doc.image(imageBuffer, xPos, currentY, {
               width: finalWidth,
               height: finalHeight,
             })
 
+            // Atualizar posição Y após a imagem
+            currentY = doc.y + 10
+
             // Adicionar URL da imagem abaixo
             doc
-              .moveDown(0.5)
               .fontSize(8)
               .font(fonts.italic)
               .fillColor(colors.lightText)
-              .text(`URL da imagem: ${evidence.imageUrl}`, { align: "center" })
+              .text(`URL da imagem: ${evidence.imageUrl}`, margin, currentY, {
+                align: "center",
+                width: contentWidth,
+              })
+
+            currentY = doc.y + 15
           } else {
             // Fallback se não conseguir carregar a imagem
             doc
               .fontSize(10)
               .font(fonts.italic)
               .fillColor(colors.danger)
-              .text("Não foi possível carregar a imagem. URL da imagem:", { align: "center" })
-              .moveDown(0.2)
-              .text(evidence.imageUrl, { align: "center" })
-          }
+              .text("Não foi possível carregar a imagem. URL da imagem:", margin, currentY, {
+                align: "center",
+                width: contentWidth,
+              })
 
-          doc.moveDown(1)
+            currentY = doc.y + 5
+
+            doc.text(evidence.imageUrl, margin, currentY, {
+              align: "center",
+              width: contentWidth,
+            })
+
+            currentY = doc.y + 15
+          }
         } catch (error) {
           console.error("Erro ao processar imagem:", error)
           doc
             .fontSize(10)
             .font(fonts.italic)
             .fillColor(colors.danger)
-            .text("Erro ao processar a imagem. URL da imagem:", { align: "center" })
-            .moveDown(0.2)
-            .text(evidence.imageUrl, { align: "center" })
-            .moveDown(1)
+            .text("Erro ao processar a imagem. URL da imagem:", margin, currentY, {
+              align: "center",
+              width: contentWidth,
+            })
+
+          currentY = doc.y + 5
+
+          doc.text(evidence.imageUrl, margin, currentY, {
+            align: "center",
+            width: contentWidth,
+          })
+
+          currentY = doc.y + 15
         }
       } else if (evidence.type === "text" && evidence.content) {
-        addSectionTitle(doc, "CONTEÚDO DA EVIDÊNCIA")
-        doc
-          .fontSize(10)
-          .font(fonts.italic)
-          .fillColor(colors.text)
-          .text(evidence.content, { align: "justify" })
-          .moveDown(1)
+        currentY = addSectionTitle(doc, "CONTEÚDO DA EVIDÊNCIA", margin, currentY)
+
+        doc.fontSize(10).font(fonts.italic).fillColor(colors.text).text(evidence.content, margin, currentY, {
+          align: "justify",
+          width: contentWidth,
+        })
+
+        currentY = doc.y + 15
+      }
+
+      // Verificar se é necessário adicionar uma nova página
+      if (currentY > doc.page.height - 250) {
+        doc.addPage()
+        currentY = margin
       }
 
       // Seção do Relatório
-      addSectionTitle(doc, "DETALHES DO RELATÓRIO")
+      currentY = addSectionTitle(doc, "DETALHES DO RELATÓRIO", margin, currentY)
+
       const reportInfo = [
         ["Título:", report.title],
         ["Data de Criação:", moment(report.createdAt).format("DD/MM/YYYY")],
@@ -223,66 +280,71 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
         reportInfo.push(["Assinado em:", moment(report.digitalSignature.signatureDate).format("DD/MM/YYYY HH:mm:ss")])
       }
 
-      addTable(doc, reportInfo)
-      doc.moveDown(0.5)
+      currentY = addTable(doc, reportInfo, margin, currentY, contentWidth)
+      currentY += 15
 
       // Conteúdo do Relatório
       if (report.methodology) {
-        addSectionTitle(doc, "METODOLOGIA")
-        doc
-          .fontSize(11)
-          .font(fonts.normal)
-          .fillColor(colors.text)
-          .text(report.methodology, { align: "justify" })
-          .moveDown(0.5)
+        currentY = addSectionTitle(doc, "METODOLOGIA", margin, currentY)
+
+        doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.methodology, margin, currentY, {
+          align: "justify",
+          width: contentWidth,
+        })
+
+        currentY = doc.y + 15
       }
 
-      addSectionTitle(doc, "ANÁLISE")
-      doc
-        .fontSize(11)
-        .font(fonts.normal)
-        .fillColor(colors.text)
-        .text(report.content, { align: "justify" })
-        .moveDown(0.5)
+      currentY = addSectionTitle(doc, "ANÁLISE", margin, currentY)
 
-      addSectionTitle(doc, "DESCOBERTAS")
-      doc
-        .fontSize(11)
-        .font(fonts.normal)
-        .fillColor(colors.text)
-        .text(report.findings, { align: "justify" })
-        .moveDown(0.5)
+      doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.content, margin, currentY, {
+        align: "justify",
+        width: contentWidth,
+      })
+
+      currentY = doc.y + 15
+
+      currentY = addSectionTitle(doc, "DESCOBERTAS", margin, currentY)
+
+      doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.findings, margin, currentY, {
+        align: "justify",
+        width: contentWidth,
+      })
+
+      currentY = doc.y + 15
 
       if (report.conclusion) {
-        addSectionTitle(doc, "CONCLUSÃO")
-        doc
-          .fontSize(11)
-          .font(fonts.normal)
-          .fillColor(colors.text)
-          .text(report.conclusion, { align: "justify" })
-          .moveDown(0.5)
+        currentY = addSectionTitle(doc, "CONCLUSÃO", margin, currentY)
+
+        doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.conclusion, margin, currentY, {
+          align: "justify",
+          width: contentWidth,
+        })
+
+        currentY = doc.y + 15
       }
 
       // Assinatura Digital
       if (report.status === "assinado" && report.digitalSignature) {
-        await addDigitalSignature(doc, report, expert)
+        currentY = await addDigitalSignature(doc, report, expert, margin, currentY, contentWidth)
       }
 
-      // Adicionar rodapé com numeração de páginas
+      // Adicionar rodapé com assinatura
+      addFooter(doc, expert, report, margin, contentWidth)
+
+      // Adicionar numeração de páginas
       const totalPages = doc.bufferedPageRange().count
       for (let i = 0; i < totalPages; i++) {
         doc.switchToPage(i)
 
-        // Adicionar rodapé com assinatura na última página
-        if (i === totalPages - 1) {
-          addFooter(doc, expert, report)
-        }
-
-        // Adicionar numeração de página em todas as páginas
+        // Adicionar numeração de página
         doc
           .fontSize(8)
           .fillColor(colors.lightText)
-          .text(`Página ${i + 1} de ${totalPages}`, 50, doc.page.height - 50, { align: "center" })
+          .text(`Página ${i + 1} de ${totalPages}`, margin, doc.page.height - 30, {
+            align: "center",
+            width: contentWidth,
+          })
       }
 
       doc.end()
@@ -294,78 +356,103 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
 }
 
 // ==============================================
-// FUNÇÕES AUXILIARES OTIMIZADAS
+// FUNÇÕES AUXILIARES REESCRITAS
 // ==============================================
 
 /**
  * Adiciona cabeçalho ao documento
  * @param {PDFDocument} doc - Documento PDF
  * @param {String} logoPath - Caminho para o logo (opcional)
+ * @param {Number} margin - Margem do documento
+ * @returns {Number} - Altura final do cabeçalho
  */
-const addHeader = async (doc, logoPath) => {
+const addHeader = async (doc, logoPath, margin) => {
+  const contentWidth = doc.page.width - margin * 2
+  const headerHeight = 70
+
   // Cabeçalho com fundo claro
-  doc.rect(50, 50, doc.page.width - 100, 60).fillAndStroke(colors.light, colors.primary)
+  doc.rect(margin, margin, contentWidth, headerHeight).fillAndStroke(colors.light, colors.primary)
 
   if (logoPath && fs.existsSync(logoPath)) {
     doc
-      .image(logoPath, 60, 55, { width: 50 })
+      .image(logoPath, margin + 10, margin + 10, { width: 50 })
       .fontSize(14)
       .font(fonts.bold)
       .fillColor(colors.primary)
-      .text("SISTEMA DE GESTÃO ODONTOLÓGICA FORENSE", 120, 65)
+      .text("SISTEMA DE GESTÃO ODONTOLÓGICA FORENSE", margin + 70, margin + 15, {
+        width: contentWidth - 80,
+      })
       .fontSize(10)
-      .text("Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm"), 120, 85)
+      .text("Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm"), margin + 70, margin + 35, {
+        width: contentWidth - 80,
+      })
   } else {
     doc
       .fontSize(16)
       .font(fonts.bold)
       .fillColor(colors.primary)
-      .text("SISTEMA DE GESTÃO ODONTOLÓGICA FORENSE", { align: "center" })
-      .moveDown(0.3)
+      .text("SISTEMA DE GESTÃO ODONTOLÓGICA FORENSE", margin, margin + 15, {
+        align: "center",
+        width: contentWidth,
+      })
       .fontSize(10)
-      .text("Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm"), { align: "center" })
+      .text("Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm"), margin, margin + 40, {
+        align: "center",
+        width: contentWidth,
+      })
   }
-  doc.moveDown(1.5)
+
+  return margin + headerHeight
 }
 
 /**
  * Adiciona título de seção ao documento
  * @param {PDFDocument} doc - Documento PDF
  * @param {String} title - Título da seção
+ * @param {Number} margin - Margem do documento
+ * @param {Number} yPosition - Posição Y atual
+ * @returns {Number} - Nova posição Y após o título
  */
-const addSectionTitle = (doc, title) => {
-  doc.fontSize(12).font(fonts.bold).fillColor(colors.primary).text(title).moveDown(0.3)
+const addSectionTitle = (doc, title, margin, yPosition) => {
+  doc.fontSize(12).font(fonts.bold).fillColor(colors.primary).text(title, margin, yPosition)
+
+  return doc.y + 5
 }
 
 /**
  * Adiciona tabela simples ao documento
  * @param {PDFDocument} doc - Documento PDF
  * @param {Array} rows - Linhas da tabela (array de arrays)
+ * @param {Number} margin - Margem do documento
+ * @param {Number} yPosition - Posição Y atual
+ * @param {Number} width - Largura da tabela
+ * @returns {Number} - Nova posição Y após a tabela
  */
-const addTable = (doc, rows) => {
-  const colWidth = [150, 350]
-  let y = doc.y
+const addTable = (doc, rows, margin, yPosition, width) => {
+  const colWidth = [width * 0.3, width * 0.7]
+  let y = yPosition
 
   rows.forEach((row, index) => {
     // Alternar cores de fundo para melhor legibilidade
-    doc.rect(50, y, colWidth[0] + colWidth[1], 20).fill(index % 2 === 0 ? colors.light : "#ffffff")
+    doc.rect(margin, y, colWidth[0] + colWidth[1], 20).fill(index % 2 === 0 ? colors.light : "#ffffff")
 
     // Coluna 1 (label)
     doc
       .fontSize(10)
       .font(fonts.bold)
       .fillColor(colors.text)
-      .text(row[0], 55, y + 5, { width: colWidth[0] - 10 })
+      .text(row[0], margin + 5, y + 5, { width: colWidth[0] - 10 })
 
     // Coluna 2 (valor)
     doc
       .fontSize(10)
       .font(fonts.normal)
-      .text(row[1], 55 + colWidth[0], y + 5, { width: colWidth[1] - 10 })
+      .text(row[1], margin + colWidth[0], y + 5, { width: colWidth[1] - 10 })
 
     y += 20
   })
-  doc.y = y + 5
+
+  return y
 }
 
 /**
@@ -432,22 +519,33 @@ const formatContentType = (contentType) => {
  * @param {PDFDocument} doc - Documento PDF
  * @param {Object} report - Relatório
  * @param {Object} expert - Perito responsável
+ * @param {Number} margin - Margem do documento
+ * @param {Number} yPosition - Posição Y atual
+ * @param {Number} width - Largura do conteúdo
+ * @returns {Number} - Nova posição Y após a assinatura
  */
-const addDigitalSignature = async (doc, report, expert) => {
-  const signatureBoxY = doc.y
-  doc.rect(50, signatureBoxY, doc.page.width - 100, 120).fillAndStroke("#f8f9fa", "#dee2e6")
+const addDigitalSignature = async (doc, report, expert, margin, yPosition, width) => {
+  // Verificar se é necessário adicionar uma nova página
+  if (yPosition > doc.page.height - 150) {
+    doc.addPage()
+    yPosition = margin
+  }
+
+  const boxHeight = 120
+
+  doc.rect(margin, yPosition, width, boxHeight).fillAndStroke("#f8f9fa", "#dee2e6")
 
   doc
     .fontSize(10)
     .font(fonts.bold)
     .fillColor(colors.primary)
-    .text("Documento assinado digitalmente por:", 60, signatureBoxY + 10)
+    .text("Documento assinado digitalmente por:", margin + 10, yPosition + 10)
     .font(fonts.normal)
-    .text(`${expert.name} (${expert.email})`, 60, signatureBoxY + 25)
+    .text(`${expert.name} (${expert.email})`, margin + 10, yPosition + 25)
     .text(
       `Data e hora: ${moment(report.digitalSignature.signatureDate).format("DD/MM/YYYY [às] HH:mm:ss")}`,
-      60,
-      signatureBoxY + 40,
+      margin + 10,
+      yPosition + 40,
     )
 
   const documentHash = crypto
@@ -458,27 +556,28 @@ const addDigitalSignature = async (doc, report, expert) => {
   doc
     .fontSize(8)
     .font(fonts.italic)
-    .text(`Hash de verificação: ${documentHash}`, 60, signatureBoxY + 55)
+    .text(`Hash de verificação: ${documentHash}`, margin + 10, yPosition + 55)
 
   try {
     const verificationUrl = `${process.env.APP_URL || "https://perioscan-back-end.onrender.com"}/api/evidence-reports/verify/${report._id}?hash=${report.digitalSignature.contentHash || documentHash}&code=${report.digitalSignature.verificationCode || ""}`
     const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl)
+
     doc
-      .image(qrCodeDataUrl, doc.page.width - 150, signatureBoxY + 10, { width: 80 })
+      .image(qrCodeDataUrl, margin + width - 90, yPosition + 10, { width: 80 })
       .fontSize(8)
-      .text("Escaneie o QR code para verificar a autenticidade", doc.page.width - 230, signatureBoxY + 95, {
+      .text("Escaneie o QR code para verificar a autenticidade", margin + width - 180, yPosition + 95, {
         width: 160,
         align: "center",
       })
   } catch (error) {
     console.error("Erro ao gerar QR code:", error)
-    doc.fontSize(8).text("Não foi possível gerar o QR code", doc.page.width - 230, signatureBoxY + 50, {
+    doc.fontSize(8).text("Não foi possível gerar o QR code", margin + width - 180, yPosition + 50, {
       width: 160,
       align: "center",
     })
   }
 
-  doc.y = signatureBoxY + 130
+  return yPosition + boxHeight + 10
 }
 
 /**
@@ -486,14 +585,30 @@ const addDigitalSignature = async (doc, report, expert) => {
  * @param {PDFDocument} doc - Documento PDF
  * @param {Object} expert - Perito responsável
  * @param {Object} report - Relatório
+ * @param {Number} margin - Margem do documento
+ * @param {Number} width - Largura do conteúdo
  */
-const addFooter = (doc, expert, report) => {
-  const pageBottom = doc.page.height - 100
+const addFooter = (doc, expert, report, margin, width) => {
+  // Ir para a última página
+  doc.switchToPage(doc.bufferedPageRange().count - 1)
+
+  // Posicionar na parte inferior da página
+  const footerY = doc.page.height - 100
+
   doc
     .fontSize(10)
-    .text("_______________________________", { align: "center" })
-    .text(expert.name, { align: "center" })
-    .text(`Perito Odontologista - ${expert.email}`, { align: "center" })
+    .text("_______________________________", margin, footerY, {
+      align: "center",
+      width: width,
+    })
+    .text(expert.name, margin, doc.y, {
+      align: "center",
+      width: width,
+    })
+    .text(`Perito Odontologista - ${expert.email}`, margin, doc.y, {
+      align: "center",
+      width: width,
+    })
 }
 
 /**
