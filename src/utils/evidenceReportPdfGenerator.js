@@ -5,7 +5,6 @@ import { fileURLToPath } from "url"
 import fs from "fs"
 import QRCode from "qrcode"
 import crypto from "crypto"
-import axios from "axios"
 
 // Configurar moment para português do Brasil
 moment.locale("pt-br")
@@ -150,102 +149,43 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
       if (evidence.type === "image" && evidence.imageUrl) {
         currentY = addSectionTitle(doc, "IMAGEM DA EVIDÊNCIA", margin, currentY)
 
-        try {
-          // Pré-verificar se há espaço suficiente para a imagem
-          const estimatedImageHeight = 200 // Altura estimada para a imagem
-
-          // Se não houver espaço suficiente, avançar para a próxima página
-          if (currentY + estimatedImageHeight > doc.page.height - 100) {
-            doc.addPage()
-            currentY = margin
-          }
-
-          // Tentar baixar a imagem
-          let imageBuffer = null
-          try {
-            const response = await axios.get(evidence.imageUrl, {
-              responseType: "arraybuffer",
-              timeout: 5000, // Timeout de 5 segundos
-            })
-            imageBuffer = Buffer.from(response.data, "binary")
-          } catch (error) {
-            console.error("Erro ao baixar imagem:", error.message)
-          }
-
-          if (imageBuffer) {
-            // Calcular dimensões para manter a proporção
-            const maxWidth = contentWidth
-            const maxHeight = 250 // Altura máxima para a imagem
-
-            // Usar dimensões da imagem do Cloudinary se disponíveis
-            const imgWidth = evidence.cloudinary?.width || 800
-            const imgHeight = evidence.cloudinary?.height || 600
-
-            // Calcular proporção para redimensionar
-            const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight)
-            const finalWidth = imgWidth * ratio
-            const finalHeight = imgHeight * ratio
-
-            // Centralizar a imagem
-            const xPos = margin + (contentWidth - finalWidth) / 2
-
-            // Adicionar a imagem
-            doc.image(imageBuffer, xPos, currentY, {
-              width: finalWidth,
-              height: finalHeight,
-            })
-
-            // Atualizar posição Y após a imagem
-            currentY = doc.y + 10
-
-            // Adicionar URL da imagem abaixo
-            doc
-              .fontSize(8)
-              .font(fonts.italic)
-              .fillColor(colors.lightText)
-              .text(`URL da imagem: ${evidence.imageUrl}`, margin, currentY, {
-                align: "center",
-                width: contentWidth,
-              })
-
-            currentY = doc.y + 15
-          } else {
-            // Fallback se não conseguir carregar a imagem
-            doc
-              .fontSize(10)
-              .font(fonts.italic)
-              .fillColor(colors.danger)
-              .text("Não foi possível carregar a imagem. URL da imagem:", margin, currentY, {
-                align: "center",
-                width: contentWidth,
-              })
-
-            currentY = doc.y + 5
-
-            doc.text(evidence.imageUrl, margin, currentY, {
-              align: "center",
-              width: contentWidth,
-            })
-
-            currentY = doc.y + 15
-          }
-        } catch (error) {
-          console.error("Erro ao processar imagem:", error)
-          doc
-            .fontSize(10)
-            .font(fonts.italic)
-            .fillColor(colors.danger)
-            .text("Erro ao processar a imagem. URL da imagem:", margin, currentY, {
-              align: "center",
-              width: contentWidth,
-            })
-
-          currentY = doc.y + 5
-
-          doc.text(evidence.imageUrl, margin, currentY, {
-            align: "center",
+        // Em vez de tentar renderizar a imagem, apenas exibir informações sobre ela
+        doc
+          .fontSize(11)
+          .font(fonts.normal)
+          .fillColor(colors.text)
+          .text("A imagem da evidência está disponível no seguinte link:", margin, currentY, {
+            align: "left",
             width: contentWidth,
           })
+
+        currentY = doc.y + 10
+
+        // Adicionar o link da imagem em destaque
+        doc.fontSize(10).font(fonts.bold).fillColor(colors.secondary).text(evidence.imageUrl, margin, currentY, {
+          align: "left",
+          width: contentWidth,
+          link: evidence.imageUrl,
+          underline: true,
+        })
+
+        currentY = doc.y + 15
+
+        // Adicionar informações adicionais se disponíveis
+        if (evidence.cloudinary && (evidence.cloudinary.width || evidence.cloudinary.height)) {
+          doc
+            .fontSize(9)
+            .font(fonts.italic)
+            .fillColor(colors.lightText)
+            .text(
+              `Dimensões da imagem: ${evidence.cloudinary.width || "?"} x ${evidence.cloudinary.height || "?"} pixels`,
+              margin,
+              currentY,
+              {
+                align: "left",
+                width: contentWidth,
+              },
+            )
 
           currentY = doc.y + 15
         }
