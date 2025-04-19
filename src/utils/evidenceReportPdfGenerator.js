@@ -533,7 +533,7 @@ const addFooter = (doc, expert, report, margin, width) => {
   doc.switchToPage(doc.bufferedPageRange().count - 1)
 
   // Posicionar a assinatura muito mais abaixo na página - aumentando significativamente o espaço
-  const footerY = doc.page.height - 80
+  const footerY = doc.page.height - 40
 
   doc
     .fontSize(10)
