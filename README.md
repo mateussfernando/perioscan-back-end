@@ -36,15 +36,13 @@ npm run dev
 
 # Execute em modo de produção
 npm start
-
-
-
+```
 
 ## Variáveis de Ambiente
 
-## Crie um arquivo `.env` no diretório raiz com as seguintes variáveis:
+Crie um arquivo `.env` no diretório raiz com as seguintes variáveis:
 
-
+```env
 # Configuração do Servidor
 PORT=3337
 NODE_ENV=development
@@ -62,7 +60,7 @@ CLIENT_URL=http://localhost:3000
 CLOUDINARY_CLOUD_NAME=seu-cloud-name
 CLOUDINARY_API_KEY=sua-api-key
 CLOUDINARY_API_SECRET=seu-api-secret
-
+```
 
 ## Endpoints da API
 
@@ -70,32 +68,31 @@ CLOUDINARY_API_SECRET=seu-api-secret
 
 - **POST /api/auth/login**: Autenticar usuário e obter token
 
-
+```json
 {
   "email": "usuario@exemplo.com",
   "password": "senha123"
 }
-
+```
 
 ## Autenticação
 
-## A API usa JWT (JSON Web Tokens) para autenticação. Para acessar rotas protegidas:
+A API usa JWT (JSON Web Tokens) para autenticação. Para acessar rotas protegidas:
 
 1. Obtenha um token fazendo login via `/api/auth/login`
 2. Inclua o token no cabeçalho da requisição:
 
-
+```
 x-auth-token: seu-token-jwt
+```
+
 Os tokens expiram após 1 hora por padrão.
-
-
 
 ## Funções de Usuário
 
 - **admin**: Acesso completo a todos os recursos, incluindo gerenciamento de usuários
 - **perito**: Especialista forense com acesso ao gerenciamento de casos
 - **assistente**: Assistente com acesso limitado aos casos
-
 
 ## Licença
 
