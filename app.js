@@ -16,8 +16,8 @@ import userRoutes from "./src/routes/user.routes.js"
 import caseRoutes from "./src/routes/case.routes.js"
 import evidenceRoutes from "./src/routes/evidence.routes.js"
 import reportRoutes from "./src/routes/report.routes.js"
-// Rotas de comparação removidas temporariamente
-// import comparisonRoutes from "./src/routes/comparison.routes.js"
+
+
 import uploadRoutes from "./src/routes/upload.routes.js"
 import patientRoutes from "./src/routes/patient.routes.js"
 import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js" // Nova importação
@@ -74,11 +74,11 @@ app.use("/api/users", userRoutes)
 app.use("/api/cases", caseRoutes)
 app.use("/api/evidence", evidenceRoutes)
 app.use("/api/reports", reportRoutes)
-// Rotas de comparação removidas temporariamente
-// app.use("/api/comparisons", comparisonRoutes)
+
+
 app.use("/api/upload", uploadRoutes)
 app.use("/api/patients", patientRoutes)
-app.use("/api/evidence-reports", evidenceReportRoutes) // Nova rota
+app.use("/api/evidence-reports", evidenceReportRoutes) 
 
 // Rota raiz
 app.get("/", (req, res) => {
