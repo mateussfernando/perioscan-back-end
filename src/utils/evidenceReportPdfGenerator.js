@@ -96,9 +96,17 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
       const caseInfo = [
         ["Número do Caso:", forensicCase._id.toString()],
         ["Título do Caso:", forensicCase.title || "Sem título"],
+      ]
+
+      // Adicionar data do ocorrido se disponível
+      if (forensicCase.occurrenceDate) {
+        caseInfo.push(["Data do Ocorrido:", moment(forensicCase.occurrenceDate).format("DD/MM/YYYY")])
+      }
+
+      caseInfo.push(
         ["Status do Caso:", formatStatus(forensicCase.status)],
         ["Data de Abertura:", moment(forensicCase.openDate).format("DD/MM/YYYY")],
-      ]
+      )
 
       currentY = addTable(doc, caseInfo, margin, currentY, contentWidth)
       currentY += 15 // Espaço após a tabela
@@ -532,7 +540,7 @@ const addFooter = (doc, expert, report, margin, width) => {
   // Ir para a última página
   doc.switchToPage(doc.bufferedPageRange().count - 1)
 
-  // Posicionar a assinatura muito mais abaixo na página - aumentando significativamente o espaço
+
   const footerY = doc.page.height - 40
 
   doc

@@ -85,6 +85,11 @@ export const createCase = asyncHandler(async (req, res, next) => {
   // Adicionar usuário ao req.body
   req.body.createdBy = req.user.id
 
+  // Converter a data do ocorrido para objeto Date se fornecida
+  if (req.body.occurrenceDate) {
+    req.body.occurrenceDate = new Date(req.body.occurrenceDate)
+  }
+
   const forensicCase = await Case.create(req.body)
 
   res.status(201).json({
@@ -106,6 +111,11 @@ export const updateCase = asyncHandler(async (req, res, next) => {
   // Verificar se o usuário é o criador do caso ou tem cargo de admin
   if (forensicCase.createdBy.toString() !== req.user.id && req.user.role !== "admin") {
     return next(new ErrorResponse(`User ${req.user.id} is not authorized to update this case`, 403))
+  }
+
+  // Converter a data do ocorrido para objeto Date se fornecida
+  if (req.body.occurrenceDate) {
+    req.body.occurrenceDate = new Date(req.body.occurrenceDate)
   }
 
   // Se o status estiver sendo alterado para 'finalizado', definir dataFechamento

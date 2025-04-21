@@ -97,8 +97,14 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
         ["Número do Caso:", report.caseNumber || forensicCase._id],
         ["Título:", forensicCase.title],
         ["Data de Abertura:", moment(forensicCase.openDate).format("DD/MM/YYYY")],
-        ["Status:", formatStatus(forensicCase.status)],
       ]
+
+      // Adicionar data do ocorrido se disponível
+      if (forensicCase.occurrenceDate) {
+        caseInfo.push(["Data do Ocorrido:", moment(forensicCase.occurrenceDate).format("DD/MM/YYYY")])
+      }
+
+      caseInfo.push(["Status:", formatStatus(forensicCase.status)])
 
       addTable(doc, caseInfo)
       doc.moveDown()
@@ -176,7 +182,7 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
       doc.on("pageAdded", () => {
         pageCount++
       })
-     
+
       // Finalizar o documento
       doc.end()
     } catch (error) {
@@ -348,7 +354,6 @@ const addFooter = (doc, expert, report) => {
     .text("_______________________________", 50, pageBottom, { align: "center" })
     .text(expert.name, 50, pageBottom + 15, { align: "center" })
     .text(`Perito Odontologista - ${expert.email}`, 50, pageBottom + 30, { align: "center" })
-
 }
 
 /**
@@ -491,4 +496,3 @@ const formatStatus = (status) => {
 }
 
 export default generateReportPDF
-

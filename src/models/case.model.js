@@ -22,6 +22,10 @@ const caseSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    occurrenceDate: {
+      type: Date,
+      description: "Data em que o ocorrido aconteceu",
+    },
     openDate: {
       type: Date,
       default: Date.now,

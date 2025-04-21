@@ -99,6 +99,10 @@ router.use(protect)
  *               location:
  *                 type: string
  *                 description: Local do ocorrido
+ *               occurrenceDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Data em que o ocorrido aconteceu
  *               status:
  *                 type: string
  *                 enum: [em andamento, finalizado, arquivado]
