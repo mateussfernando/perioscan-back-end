@@ -72,7 +72,7 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
     );
   }
 
-  await user.remove();
+ await User.deleteOne({ _id: user._id });
 
   res.status(200).json({
     success: true,
