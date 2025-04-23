@@ -57,7 +57,7 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
           Author: expert.name,
           Subject: "Relatório de Evidência Odontológica Forense",
           Keywords: "odontologia legal, evidência, relatório, forense",
-          Creator: "Sistema de Gestão Odontológica Forense - PerioScan",
+          Creator: "Sistema de Gestão de Laudos Forense Odontolegal - PerioScan",
           CreationDate: new Date(),
         },
       })
@@ -327,7 +327,7 @@ const addHeader = async (doc, logoPath, margin) => {
       .fontSize(14)
       .font(fonts.bold)
       .fillColor(colors.primary)
-      .text("SISTEMA DE GESTÃO ODONTOLÓGICA FORENSE", margin + 70, margin + 15, {
+      .text("SISTEMA DE GESTÃO PERICIAL ODONTOLEGAL - PERIOSCAN", margin + 70, margin + 15, {
         width: contentWidth - 80,
       })
       .fontSize(10)
@@ -339,7 +339,7 @@ const addHeader = async (doc, logoPath, margin) => {
       .fontSize(16)
       .font(fonts.bold)
       .fillColor(colors.primary)
-      .text("SISTEMA DE GESTÃO ODONTOLÓGICA FORENSE", margin, margin + 15, {
+      .text("SISTEMA DE GESTÃO PERICIAL ODONTOLEGAL", margin, margin + 15, {
         align: "center",
         width: contentWidth,
       })
