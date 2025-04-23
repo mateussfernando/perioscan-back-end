@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const caseSchema = new mongoose.Schema(
   {
@@ -7,6 +7,10 @@ const caseSchema = new mongoose.Schema(
       required: [true, "Please provide a case title"],
       trim: true,
       maxlength: [100, "Title cannot be more than 100 characters"],
+    },
+    type: {
+      type: String,
+      enum: ["acidente", "identificação de vítima", "exame criminal", "outro"],
     },
     description: {
       type: String,
@@ -43,8 +47,8 @@ const caseSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  },
-)
+  }
+);
 
 // Virtual para evidências
 caseSchema.virtual("evidence", {
@@ -52,7 +56,7 @@ caseSchema.virtual("evidence", {
   localField: "_id",
   foreignField: "case",
   justOne: false,
-})
+});
 
 // Virtual para laudos
 caseSchema.virtual("reports", {
@@ -60,15 +64,15 @@ caseSchema.virtual("reports", {
   localField: "_id",
   foreignField: "case",
   justOne: false,
-})
+});
 
 caseSchema.virtual("patients", {
   ref: "Patient",
   localField: "_id",
   foreignField: "cases.caseId",
   justOne: false,
-})
+});
 
-const Case = mongoose.model("Case", caseSchema)
+const Case = mongoose.model("Case", caseSchema);
 
-export default Case
+export default Case;
