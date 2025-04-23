@@ -36,6 +36,16 @@ const fonts = {
 };
 
 /**
+ * Calcula o espaço disponível na página atual
+ * @param {PDFDocument} doc - Documento PDF
+ * @param {Number} margin - Margem inferior a ser considerada
+ * @returns {Number} - Espaço disponível em pontos
+ */
+const availableSpace = (doc, margin = 50) => {
+  return doc.page.height - doc.y - margin;
+};
+
+/**
  * Gera um PDF para um laudo pericial
  * @param {Object} report - O laudo a ser convertido em PDF
  * @param {Object} forensicCase - O caso relacionado ao laudo
@@ -147,7 +157,7 @@ export const generateReportPDF = async (
       currentY += 15;
 
       // Verificar se é necessário adicionar uma nova página
-      if (currentY > doc.page.height - 250) {
+      if (availableSpace(doc, 100) < 0) {
         doc.addPage();
         currentY = margin;
       }
@@ -199,7 +209,7 @@ export const generateReportPDF = async (
       }
 
       // Verificar se é necessário adicionar uma nova página
-      if (currentY > doc.page.height - 250) {
+      if (availableSpace(doc, 100) < 0) {
         doc.addPage();
         currentY = margin;
       }
@@ -494,7 +504,7 @@ const addDigitalSignature = async (
   width
 ) => {
   // Verificar se é necessário adicionar uma nova página
-  if (yPosition > doc.page.height - 150) {
+  if (availableSpace(doc, 150) < 0) {
     doc.addPage();
     yPosition = margin;
   }
@@ -603,9 +613,11 @@ const addDigitalSignature = async (
  * @param {Number} width - Largura do conteúdo
  */
 const addFooter = (doc, expert, report, margin, width) => {
-  // Ir para a última página
-  doc.switchToPage(doc.bufferedPageRange().count - 1);
+  // Adicionar rodapé apenas na última página atual
+  const currentPage = doc.bufferedPageRange().count - 1;
+  doc.switchToPage(currentPage);
 
+  // Calcular posição Y para o rodapé (mais próximo do final da página)
   const footerY = doc.page.height - 70;
 
   doc
