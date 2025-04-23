@@ -86,7 +86,7 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
         .fontSize(17)
         .font(fonts.bold)
         .fillColor(colors.primary)
-        .text("LAUDO PERICIAL ODONTOLÓGICO", { align: "center" })
+        .text("LAUDO PERICIAL ODONTOLEGAL", { align: "center" })
         .moveDown(0.5)
 
       // Adicionar informações do caso
