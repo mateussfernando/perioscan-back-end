@@ -1,30 +1,31 @@
-import PDFDocument from "pdfkit"
-import moment from "moment"
-import path from "path"
-import { fileURLToPath } from "url"
-import fs from "fs"
-import QRCode from "qrcode"
-import crypto from "crypto"
+import PDFDocument from "pdfkit";
+import moment from "moment";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import QRCode from "qrcode";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 // Configurar moment para português do Brasil
-moment.locale("pt-br")
+moment.locale("pt-br");
 
 // Obter o diretório atual
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Cores para o documento
+// Atualizar a paleta de cores para preto, branco e cinza
 const colors = {
-  primary: "#003366",
-  secondary: "#0066cc",
-  accent: "#ff9900",
-  light: "#f5f5f5",
-  text: "#333333",
-  lightText: "#666666",
-  success: "#28a745",
-  warning: "#ffc107",
-  danger: "#dc3545",
-}
+  primary: "#000000", // Preto
+  secondary: "#333333", // Cinza escuro
+  accent: "#666666", // Cinza médio
+  light: "#f5f5f5", // Cinza muito claro (quase branco)
+  text: "#333333", // Cinza escuro para texto
+  lightText: "#666666", // Cinza médio para texto secundário
+  success: "#2e7d32", // Verde escuro
+  warning: "#f9a825", // Amarelo escuro
+  danger: "#c62828", // Vermelho escuro
+};
 
 // Fontes personalizadas
 const fonts = {
@@ -32,7 +33,7 @@ const fonts = {
   bold: "Helvetica-Bold",
   italic: "Helvetica-Oblique",
   boldItalic: "Helvetica-BoldOblique",
-}
+};
 
 /**
  * Gera um PDF para um relatório de evidência
@@ -43,10 +44,16 @@ const fonts = {
  * @param {Object} options - Opções adicionais para a geração do PDF
  * @returns {Promise<Buffer>} - Buffer contendo o PDF gerado
  */
-export const generateEvidenceReportPDF = async (report, evidence, forensicCase, expert, options = {}) => {
+export const generateEvidenceReportPDF = async (
+  report,
+  evidence,
+  forensicCase,
+  expert,
+  options = {}
+) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const buffers = []
+      const buffers = [];
       const doc = new PDFDocument({
         size: "A4",
         margin: 50,
@@ -57,26 +64,27 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
           Author: expert.name,
           Subject: "Relatório de Evidência Odontológica Forense",
           Keywords: "odontologia legal, evidência, relatório, forense",
-          Creator: "Sistema de Gestão de Laudos Forense Odontolegal - PerioScan",
+          Creator:
+            "Sistema de Gestão de Laudos Forense Odontolegal - PerioScan",
           CreationDate: new Date(),
         },
-      })
+      });
 
-      doc.on("data", buffers.push.bind(buffers))
-      doc.on("end", () => resolve(Buffer.concat(buffers)))
+      doc.on("data", buffers.push.bind(buffers));
+      doc.on("end", () => resolve(Buffer.concat(buffers)));
 
       // Definir margens consistentes
-      const margin = 50
-      const contentWidth = doc.page.width - margin * 2
+      const margin = 50;
+      const contentWidth = doc.page.width - margin * 2;
 
       // Marca d'água (em camada inferior)
       if (report.status !== "assinado") {
-        addWatermark(doc, report.status)
+        addWatermark(doc, report.status);
       }
 
       // Cabeçalho
-      const headerHeight = await addHeader(doc, options.logoPath, margin)
-      let currentY = headerHeight + 20 // Posição Y após o cabeçalho
+      const headerHeight = await addHeader(doc, options.logoPath, margin);
+      let currentY = headerHeight + 20; // Posição Y após o cabeçalho
 
       // Título principal
       doc
@@ -86,222 +94,310 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
         .text("RELATÓRIO DE ANÁLISE DE EVIDÊNCIA", margin, currentY, {
           align: "center",
           width: contentWidth,
-        })
+        });
 
-      currentY = doc.y + 15 // Atualizar posição Y após o título
+      currentY = doc.y + 15; // Atualizar posição Y após o título
 
       // Seção do Caso
-      currentY = addSectionTitle(doc, "INFORMAÇÕES DO CASO", margin, currentY)
+      currentY = addSectionTitle(doc, "INFORMAÇÕES DO CASO", margin, currentY);
 
       const caseInfo = [
         ["Número do Caso:", forensicCase._id.toString()],
         ["Título do Caso:", forensicCase.title || "Sem título"],
-      ]
+      ];
 
       // Adicionar data do ocorrido se disponível
       if (forensicCase.occurrenceDate) {
-        caseInfo.push(["Data do Ocorrido:", moment(forensicCase.occurrenceDate).format("DD/MM/YYYY")])
+        caseInfo.push([
+          "Data do Ocorrido:",
+          moment(forensicCase.occurrenceDate).format("DD/MM/YYYY"),
+        ]);
       }
 
       caseInfo.push(
         ["Status do Caso:", formatStatus(forensicCase.status)],
-        ["Data de Abertura:", moment(forensicCase.openDate).format("DD/MM/YYYY")],
-      )
+        [
+          "Data de Abertura:",
+          moment(forensicCase.openDate).format("DD/MM/YYYY"),
+        ]
+      );
 
-      currentY = addTable(doc, caseInfo, margin, currentY, contentWidth)
-      currentY += 15 // Espaço após a tabela
+      currentY = addTable(doc, caseInfo, margin, currentY, contentWidth);
+      currentY += 15; // Espaço após a tabela
 
       // Seção da Evidência
-      currentY = addSectionTitle(doc, "DETALHES DA EVIDÊNCIA", margin, currentY)
+      currentY = addSectionTitle(
+        doc,
+        "DETALHES DA EVIDÊNCIA",
+        margin,
+        currentY
+      );
 
       const evidenceInfo = [
         ["ID da Evidência:", evidence._id.toString()],
         ["Tipo de Evidência:", evidence.type === "image" ? "Imagem" : "Texto"],
         ["Descrição:", evidence.description || "Sem descrição"],
-        ["Data de Coleta:", moment(evidence.collectionDate).format("DD/MM/YYYY")],
-      ]
+        [
+          "Data de Coleta:",
+          moment(evidence.collectionDate).format("DD/MM/YYYY"),
+        ],
+      ];
 
       if (evidence.collectedBy && evidence.collectedBy.name) {
-        evidenceInfo.push(["Coletado por:", evidence.collectedBy.name])
+        evidenceInfo.push(["Coletado por:", evidence.collectedBy.name]);
       }
 
       // Metadados específicos
       if (evidence.type === "image") {
-        const imageType = evidence.imageType || "outro"
+        const imageType = evidence.imageType || "outro";
 
         if (evidence.cloudinary) {
           if (evidence.cloudinary.width && evidence.cloudinary.height) {
-            evidenceInfo.push(["Dimensões:", `${evidence.cloudinary.width}x${evidence.cloudinary.height} pixels`])
+            evidenceInfo.push([
+              "Dimensões:",
+              `${evidence.cloudinary.width}x${evidence.cloudinary.height} pixels`,
+            ]);
           }
 
           if (evidence.cloudinary.format) {
-            evidenceInfo.push(["Formato:", evidence.cloudinary.format.toUpperCase()])
+            evidenceInfo.push([
+              "Formato:",
+              evidence.cloudinary.format.toUpperCase(),
+            ]);
           }
         }
 
-        evidenceInfo.push(["Tipo de Imagem:", formatImageType(imageType)])
+        evidenceInfo.push(["Tipo de Imagem:", formatImageType(imageType)]);
       } else if (evidence.type === "text") {
-        const contentType = evidence.contentType || "outro"
-        const wordCount = evidence.content ? evidence.content.split(/\s+/).length : 0
+        const contentType = evidence.contentType || "outro";
+        const wordCount = evidence.content
+          ? evidence.content.split(/\s+/).length
+          : 0;
 
         evidenceInfo.push(
           ["Tipo de Conteúdo:", formatContentType(contentType)],
-          ["Contagem de Palavras:", wordCount.toString()],
-        )
+          ["Contagem de Palavras:", wordCount.toString()]
+        );
       }
 
-      currentY = addTable(doc, evidenceInfo, margin, currentY, contentWidth)
-      currentY += 15 // Espaço após a tabela
+      currentY = addTable(doc, evidenceInfo, margin, currentY, contentWidth);
+      currentY += 15; // Espaço após a tabela
 
       // Conteúdo da Evidência - IMAGEM
       if (evidence.type === "image" && evidence.imageUrl) {
-        currentY = addSectionTitle(doc, "IMAGEM DA EVIDÊNCIA", margin, currentY)
+        currentY = addSectionTitle(
+          doc,
+          "IMAGEM DA EVIDÊNCIA",
+          margin,
+          currentY
+        );
 
         // Em vez de tentar renderizar a imagem, apenas exibir informações sobre ela
         doc
           .fontSize(11)
           .font(fonts.normal)
           .fillColor(colors.text)
-          .text("A imagem da evidência está disponível no seguinte link:", margin, currentY, {
-            align: "left",
-            width: contentWidth,
-          })
+          .text(
+            "A imagem da evidência está disponível no seguinte link:",
+            margin,
+            currentY,
+            {
+              align: "left",
+              width: contentWidth,
+            }
+          );
 
-        currentY = doc.y + 10
+        currentY = doc.y + 10;
 
         // Adicionar o link da imagem em destaque
-        doc.fontSize(10).font(fonts.bold).fillColor(colors.secondary).text(evidence.imageUrl, margin, currentY, {
-          align: "left",
-          width: contentWidth,
-          link: evidence.imageUrl,
-          underline: true,
-        })
+        doc
+          .fontSize(10)
+          .font(fonts.bold)
+          .fillColor(colors.secondary)
+          .text(evidence.imageUrl, margin, currentY, {
+            align: "left",
+            width: contentWidth,
+            link: evidence.imageUrl,
+            underline: true,
+          });
 
-        currentY = doc.y + 15
+        currentY = doc.y + 15;
 
         // Adicionar informações adicionais se disponíveis
-        if (evidence.cloudinary && (evidence.cloudinary.width || evidence.cloudinary.height)) {
+        if (
+          evidence.cloudinary &&
+          (evidence.cloudinary.width || evidence.cloudinary.height)
+        ) {
           doc
             .fontSize(9)
             .font(fonts.italic)
             .fillColor(colors.lightText)
             .text(
-              `Dimensões da imagem: ${evidence.cloudinary.width || "?"} x ${evidence.cloudinary.height || "?"} pixels`,
+              `Dimensões da imagem: ${evidence.cloudinary.width || "?"} x ${
+                evidence.cloudinary.height || "?"
+              } pixels`,
               margin,
               currentY,
               {
                 align: "left",
                 width: contentWidth,
-              },
-            )
+              }
+            );
 
-          currentY = doc.y + 15
+          currentY = doc.y + 15;
         }
       } else if (evidence.type === "text" && evidence.content) {
-        currentY = addSectionTitle(doc, "CONTEÚDO DA EVIDÊNCIA", margin, currentY)
+        currentY = addSectionTitle(
+          doc,
+          "CONTEÚDO DA EVIDÊNCIA",
+          margin,
+          currentY
+        );
 
-        doc.fontSize(10).font(fonts.italic).fillColor(colors.text).text(evidence.content, margin, currentY, {
-          align: "justify",
-          width: contentWidth,
-        })
+        doc
+          .fontSize(10)
+          .font(fonts.italic)
+          .fillColor(colors.text)
+          .text(evidence.content, margin, currentY, {
+            align: "justify",
+            width: contentWidth,
+          });
 
-        currentY = doc.y + 15
+        currentY = doc.y + 15;
       }
 
       // Verificar se é necessário adicionar uma nova página
       if (currentY > doc.page.height - 250) {
-        doc.addPage()
-        currentY = margin
+        doc.addPage();
+        currentY = margin;
       }
 
       // Seção do Relatório
-      currentY = addSectionTitle(doc, "DETALHES DO RELATÓRIO", margin, currentY)
+      currentY = addSectionTitle(
+        doc,
+        "DETALHES DO RELATÓRIO",
+        margin,
+        currentY
+      );
 
       const reportInfo = [
         ["Título:", report.title],
         ["Data de Criação:", moment(report.createdAt).format("DD/MM/YYYY")],
         ["Perito Responsável:", expert.name],
         ["Status:", formatStatus(report.status)],
-      ]
+      ];
 
       if (report.digitalSignature?.signatureDate) {
-        reportInfo.push(["Assinado em:", moment(report.digitalSignature.signatureDate).format("DD/MM/YYYY HH:mm:ss")])
+        reportInfo.push([
+          "Assinado em:",
+          moment(report.digitalSignature.signatureDate).format(
+            "DD/MM/YYYY HH:mm:ss"
+          ),
+        ]);
       }
 
-      currentY = addTable(doc, reportInfo, margin, currentY, contentWidth)
-      currentY += 15
+      currentY = addTable(doc, reportInfo, margin, currentY, contentWidth);
+      currentY += 15;
 
       // Conteúdo do Relatório
       if (report.methodology) {
-        currentY = addSectionTitle(doc, "METODOLOGIA", margin, currentY)
+        currentY = addSectionTitle(doc, "METODOLOGIA", margin, currentY);
 
-        doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.methodology, margin, currentY, {
-          align: "justify",
-          width: contentWidth,
-        })
+        doc
+          .fontSize(11)
+          .font(fonts.normal)
+          .fillColor(colors.text)
+          .text(report.methodology, margin, currentY, {
+            align: "justify",
+            width: contentWidth,
+          });
 
-        currentY = doc.y + 15
+        currentY = doc.y + 15;
       }
 
-      currentY = addSectionTitle(doc, "ANÁLISE", margin, currentY)
+      currentY = addSectionTitle(doc, "ANÁLISE", margin, currentY);
 
-      doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.content, margin, currentY, {
-        align: "justify",
-        width: contentWidth,
-      })
-
-      currentY = doc.y + 15
-
-      currentY = addSectionTitle(doc, "DESCOBERTAS", margin, currentY)
-
-      doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.findings, margin, currentY, {
-        align: "justify",
-        width: contentWidth,
-      })
-
-      currentY = doc.y + 15
-
-      if (report.conclusion) {
-        currentY = addSectionTitle(doc, "CONCLUSÃO", margin, currentY)
-
-        doc.fontSize(11).font(fonts.normal).fillColor(colors.text).text(report.conclusion, margin, currentY, {
+      doc
+        .fontSize(11)
+        .font(fonts.normal)
+        .fillColor(colors.text)
+        .text(report.content, margin, currentY, {
           align: "justify",
           width: contentWidth,
-        })
+        });
 
-        currentY = doc.y + 15
+      currentY = doc.y + 15;
+
+      currentY = addSectionTitle(doc, "DESCOBERTAS", margin, currentY);
+
+      doc
+        .fontSize(11)
+        .font(fonts.normal)
+        .fillColor(colors.text)
+        .text(report.findings, margin, currentY, {
+          align: "justify",
+          width: contentWidth,
+        });
+
+      currentY = doc.y + 15;
+
+      if (report.conclusion) {
+        currentY = addSectionTitle(doc, "CONCLUSÃO", margin, currentY);
+
+        doc
+          .fontSize(11)
+          .font(fonts.normal)
+          .fillColor(colors.text)
+          .text(report.conclusion, margin, currentY, {
+            align: "justify",
+            width: contentWidth,
+          });
+
+        currentY = doc.y + 15;
       }
 
       // Assinatura Digital
       if (report.status === "assinado" && report.digitalSignature) {
-        currentY = await addDigitalSignature(doc, report, expert, margin, currentY, contentWidth)
+        currentY = await addDigitalSignature(
+          doc,
+          report,
+          expert,
+          margin,
+          currentY,
+          contentWidth
+        );
       }
 
       // Adicionar rodapé com assinatura
-      addFooter(doc, expert, report, margin, contentWidth)
+      addFooter(doc, expert, report, margin, contentWidth);
 
       // Adicionar numeração de páginas
-      const totalPages = doc.bufferedPageRange().count
+      const totalPages = doc.bufferedPageRange().count;
       for (let i = 0; i < totalPages; i++) {
-        doc.switchToPage(i)
+        doc.switchToPage(i);
 
         // Adicionar numeração de página
         doc
           .fontSize(8)
           .fillColor(colors.lightText)
-          .text(`Página ${i + 1} de ${totalPages}`, margin, doc.page.height - 30, {
-            align: "center",
-            width: contentWidth,
-          })
+          .text(
+            `Página ${i + 1} de ${totalPages}`,
+            margin,
+            doc.page.height - 30,
+            {
+              align: "center",
+              width: contentWidth,
+            }
+          );
       }
 
-      doc.end()
+      doc.end();
     } catch (error) {
-      console.error("Erro ao gerar PDF:", error)
-      reject(error)
+      console.error("Erro ao gerar PDF:", error);
+      reject(error);
     }
-  })
-}
+  });
+};
 
 // ==============================================
 // FUNÇÕES AUXILIARES REESCRITAS
@@ -315,11 +411,13 @@ export const generateEvidenceReportPDF = async (report, evidence, forensicCase, 
  * @returns {Number} - Altura final do cabeçalho
  */
 const addHeader = async (doc, logoPath, margin) => {
-  const contentWidth = doc.page.width - margin * 2
-  const headerHeight = 70
+  const contentWidth = doc.page.width - margin * 2;
+  const headerHeight = 70;
 
   // Cabeçalho com fundo claro
-  doc.rect(margin, margin, contentWidth, headerHeight).fillAndStroke(colors.light, colors.primary)
+  doc
+    .rect(margin, margin, contentWidth, headerHeight)
+    .fillAndStroke(colors.light, colors.primary);
 
   if (logoPath && fs.existsSync(logoPath)) {
     doc
@@ -327,31 +425,51 @@ const addHeader = async (doc, logoPath, margin) => {
       .fontSize(14)
       .font(fonts.bold)
       .fillColor(colors.primary)
-      .text("SISTEMA DE GESTÃO PERICIAL ODONTOLEGAL - PERIOSCAN", margin + 70, margin + 15, {
-        width: contentWidth - 80,
-      })
+      .text(
+        "SISTEMA DE GESTÃO PERICIAL ODONTOLEGAL - PERIOSCAN",
+        margin + 70,
+        margin + 15,
+        {
+          width: contentWidth - 80,
+        }
+      )
       .fontSize(10)
-      .text("Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm"), margin + 70, margin + 35, {
-        width: contentWidth - 80,
-      })
+      .text(
+        "Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm:ss"),
+        margin + 70,
+        margin + 35,
+        {
+          width: contentWidth - 80,
+        }
+      );
   } else {
     doc
       .fontSize(16)
       .font(fonts.bold)
       .fillColor(colors.primary)
-      .text("SISTEMA DE GESTÃO PERICIAL ODONTOLEGAL", margin, margin + 15, {
-        align: "center",
-        width: contentWidth,
-      })
+      .text(
+        "SISTEMA DE GESTÃO PERICIAL ODONTOLEGAL - PERIOSCAN",
+        margin,
+        margin + 15,
+        {
+          align: "center",
+          width: contentWidth,
+        }
+      )
       .fontSize(10)
-      .text("Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm"), margin, margin + 40, {
-        align: "center",
-        width: contentWidth,
-      })
+      .text(
+        "Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm:ss"),
+        margin,
+        margin + 40,
+        {
+          align: "center",
+          width: contentWidth,
+        }
+      );
   }
 
-  return margin + headerHeight
-}
+  return margin + headerHeight;
+};
 
 /**
  * Adiciona título de seção ao documento
@@ -362,10 +480,14 @@ const addHeader = async (doc, logoPath, margin) => {
  * @returns {Number} - Nova posição Y após o título
  */
 const addSectionTitle = (doc, title, margin, yPosition) => {
-  doc.fontSize(12).font(fonts.bold).fillColor(colors.primary).text(title, margin, yPosition)
+  doc
+    .fontSize(12)
+    .font(fonts.bold)
+    .fillColor(colors.primary)
+    .text(title, margin, yPosition);
 
-  return doc.y + 5
-}
+  return doc.y + 5;
+};
 
 /**
  * Adiciona tabela simples ao documento
@@ -377,31 +499,33 @@ const addSectionTitle = (doc, title, margin, yPosition) => {
  * @returns {Number} - Nova posição Y após a tabela
  */
 const addTable = (doc, rows, margin, yPosition, width) => {
-  const colWidth = [width * 0.3, width * 0.7]
-  let y = yPosition
+  const colWidth = [width * 0.3, width * 0.7];
+  let y = yPosition;
 
   rows.forEach((row, index) => {
     // Alternar cores de fundo para melhor legibilidade
-    doc.rect(margin, y, colWidth[0] + colWidth[1], 20).fill(index % 2 === 0 ? colors.light : "#ffffff")
+    doc
+      .rect(margin, y, colWidth[0] + colWidth[1], 20)
+      .fill(index % 2 === 0 ? colors.light : "#ffffff");
 
     // Coluna 1 (label)
     doc
       .fontSize(10)
       .font(fonts.bold)
       .fillColor(colors.text)
-      .text(row[0], margin + 5, y + 5, { width: colWidth[0] - 10 })
+      .text(row[0], margin + 5, y + 5, { width: colWidth[0] - 10 });
 
     // Coluna 2 (valor)
     doc
       .fontSize(10)
       .font(fonts.normal)
-      .text(row[1], margin + colWidth[0], y + 5, { width: colWidth[1] - 10 })
+      .text(row[1], margin + colWidth[0], y + 5, { width: colWidth[1] - 10 });
 
-    y += 20
-  })
+    y += 20;
+  });
 
-  return y
-}
+  return y;
+};
 
 /**
  * Formata o status para exibição
@@ -415,9 +539,9 @@ const formatStatus = (status) => {
     arquivado: "Arquivado",
     rascunho: "Rascunho",
     assinado: "Assinado",
-  }
-  return statusMap[status] || status
-}
+  };
+  return statusMap[status] || status;
+};
 
 /**
  * Formata o tipo de imagem para exibição
@@ -425,18 +549,18 @@ const formatStatus = (status) => {
  * @returns {String} - Tipo de imagem formatado
  */
 const formatImageType = (imageType) => {
-  if (!imageType) return "Outro"
+  if (!imageType) return "Outro";
   switch (imageType.toLowerCase().trim()) {
     case "radiografia":
-      return "Radiografia"
+      return "Radiografia";
     case "fotografia":
-      return "Fotografia"
+      return "Fotografia";
     case "odontograma":
-      return "Odontograma"
+      return "Odontograma";
     default:
-      return "Outro"
+      return "Outro";
   }
-}
+};
 
 /**
  * Formata o tipo de conteúdo para exibição
@@ -444,23 +568,23 @@ const formatImageType = (imageType) => {
  * @returns {String} - Tipo de conteúdo formatado
  */
 const formatContentType = (contentType) => {
-  if (!contentType) return "Outro"
+  if (!contentType) return "Outro";
   const type = contentType
     .toLowerCase()
     .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "");
   switch (type) {
     case "relato":
-      return "Relato"
+      return "Relato";
     case "depoimento":
-      return "Depoimento"
+      return "Depoimento";
     case "descricao tecnica":
-      return "Descrição Técnica"
+      return "Descrição Técnica";
     default:
-      return "Outro"
+      return "Outro";
   }
-}
+};
 
 /**
  * Adiciona assinatura digital ao documento
@@ -472,16 +596,47 @@ const formatContentType = (contentType) => {
  * @param {Number} width - Largura do conteúdo
  * @returns {Number} - Nova posição Y após a assinatura
  */
-const addDigitalSignature = async (doc, report, expert, margin, yPosition, width) => {
+const addDigitalSignature = async (
+  doc,
+  report,
+  expert,
+  margin,
+  yPosition,
+  width
+) => {
   // Verificar se é necessário adicionar uma nova página
   if (yPosition > doc.page.height - 150) {
-    doc.addPage()
-    yPosition = margin
+    doc.addPage();
+    yPosition = margin;
   }
 
-  const boxHeight = 120
+  const boxHeight = 120;
 
-  doc.rect(margin, yPosition, width, boxHeight).fillAndStroke("#f8f9fa", "#dee2e6")
+  doc
+    .rect(margin, yPosition, width, boxHeight)
+    .fillAndStroke("#f8f9fa", "#dee2e6");
+
+  // Obter o nome do assinante
+  let signerName = expert.name;
+  let signerEmail = expert.email;
+
+  // Se tiver informações do assinante na assinatura digital, usar essas informações
+  if (report.digitalSignature && report.digitalSignature.signedBy) {
+    try {
+      // Tentar decodificar o token para obter informações do assinante
+      const decodedToken = jwt.verify(
+        report.digitalSignature.signatureData,
+        process.env.JWT_SECRET
+      );
+      if (decodedToken && decodedToken.signedBy) {
+        signerName = decodedToken.signedBy.name || expert.name;
+        signerEmail = decodedToken.signedBy.email || expert.email;
+      }
+    } catch (error) {
+      console.error("Erro ao decodificar assinatura:", error);
+      // Manter os valores padrão em caso de erro
+    }
+  }
 
   doc
     .fontSize(10)
@@ -489,44 +644,66 @@ const addDigitalSignature = async (doc, report, expert, margin, yPosition, width
     .fillColor(colors.primary)
     .text("Documento assinado digitalmente por:", margin + 10, yPosition + 10)
     .font(fonts.normal)
-    .text(`${expert.name} (${expert.email})`, margin + 10, yPosition + 25)
+    .text(`${signerName} (${signerEmail})`, margin + 10, yPosition + 25)
     .text(
-      `Data e hora: ${moment(report.digitalSignature.signatureDate).format("DD/MM/YYYY [às] HH:mm:ss")}`,
+      `Data e hora: ${moment(report.digitalSignature.signatureDate).format(
+        "DD/MM/YYYY [às] HH:mm:ss"
+      )}`,
       margin + 10,
-      yPosition + 40,
-    )
+      yPosition + 40
+    );
 
   const documentHash = crypto
     .createHash("sha256")
-    .update(report._id.toString() + report.content + report.digitalSignature.signatureDate)
-    .digest("hex")
+    .update(
+      report._id.toString() +
+        report.content +
+        report.digitalSignature.signatureDate
+    )
+    .digest("hex");
 
   doc
     .fontSize(8)
     .font(fonts.italic)
-    .text(`Hash de verificação: ${documentHash}`, margin + 10, yPosition + 55)
+    .text(`Hash de verificação: ${documentHash}`, margin + 10, yPosition + 55);
 
   try {
-    const verificationUrl = `${process.env.APP_URL || "https://perioscan-back-end.onrender.com"}/api/evidence-reports/verify/${report._id}?hash=${report.digitalSignature.contentHash || documentHash}&code=${report.digitalSignature.verificationCode || ""}`
-    const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl)
+    const verificationUrl = `${
+      process.env.APP_URL || "https://perioscan-back-end.onrender.com"
+    }/api/evidence-reports/verify/${report._id}?hash=${
+      report.digitalSignature.contentHash || documentHash
+    }&code=${report.digitalSignature.verificationCode || ""}`;
+    const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl);
 
     doc
       .image(qrCodeDataUrl, margin + width - 90, yPosition + 10, { width: 80 })
       .fontSize(8)
-      .text("Escaneie o QR code para verificar a autenticidade", margin + width - 180, yPosition + 95, {
-        width: 160,
-        align: "center",
-      })
+      .text(
+        "Escaneie o QR code para verificar a autenticidade",
+        margin + width - 180,
+        yPosition + 95,
+        {
+          width: 160,
+          align: "center",
+        }
+      );
   } catch (error) {
-    console.error("Erro ao gerar QR code:", error)
-    doc.fontSize(8).text("Não foi possível gerar o QR code", margin + width - 180, yPosition + 50, {
-      width: 160,
-      align: "center",
-    })
+    console.error("Erro ao gerar QR code:", error);
+    doc
+      .fontSize(8)
+      .text(
+        "Não foi possível gerar o QR code",
+        margin + width - 180,
+        yPosition + 50,
+        {
+          width: 160,
+          align: "center",
+        }
+      );
   }
 
-  return yPosition + boxHeight + 10
-}
+  return yPosition + boxHeight + 10;
+};
 
 /**
  * Adiciona rodapé ao documento
@@ -538,10 +715,9 @@ const addDigitalSignature = async (doc, report, expert, margin, yPosition, width
  */
 const addFooter = (doc, expert, report, margin, width) => {
   // Ir para a última página
-  doc.switchToPage(doc.bufferedPageRange().count - 1)
+  doc.switchToPage(doc.bufferedPageRange().count - 1);
 
-
-  const footerY = doc.page.height - 40
+  const footerY = doc.page.height - 70;
 
   doc
     .fontSize(10)
@@ -556,8 +732,8 @@ const addFooter = (doc, expert, report, margin, width) => {
     .text(`Perito Odontologista - ${expert.email}`, margin, doc.y, {
       align: "center",
       width: width,
-    })
-}
+    });
+};
 
 /**
  * Adiciona marca d'água ao documento
@@ -567,11 +743,17 @@ const addFooter = (doc, expert, report, margin, width) => {
 const addWatermark = (doc, status) => {
   const watermarkConfig = {
     rascunho: { text: "RASCUNHO", color: colors.warning },
-    finalizado: { text: "FINALIZADO - AGUARDANDO ASSINATURA", color: colors.secondary },
-    default: { text: status?.toUpperCase() || "DOCUMENTO", color: colors.lightText },
-  }
+    finalizado: {
+      text: "FINALIZADO - AGUARDANDO ASSINATURA",
+      color: colors.secondary,
+    },
+    default: {
+      text: status?.toUpperCase() || "DOCUMENTO",
+      color: colors.lightText,
+    },
+  };
 
-  const { text, color } = watermarkConfig[status] || watermarkConfig.default
+  const { text, color } = watermarkConfig[status] || watermarkConfig.default;
 
   doc
     .save()
@@ -581,7 +763,7 @@ const addWatermark = (doc, status) => {
     .fillOpacity(0.3)
     .rotate(45, { origin: [doc.page.width / 2, doc.page.height / 2] })
     .text(text, 0, doc.page.height / 2 - 30, { align: "center" })
-    .restore()
-}
+    .restore();
+};
 
-export default generateEvidenceReportPDF
+export default generateEvidenceReportPDF;
