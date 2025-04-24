@@ -160,7 +160,7 @@ export const deleteReport = asyncHandler(async (req, res, next) => {
     return next(error)
   }
 
-  await report.remove()
+  await Report.deleteOne({ _id: reportId });
 
   res.status(200).json({
     success: true,
