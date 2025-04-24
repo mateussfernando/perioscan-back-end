@@ -152,7 +152,7 @@ export const deleteEvidence = asyncHandler(async (req, res, next) => {
     }
   }
 
-  await evidence.remove()
+ await evidence.deleteOne({ _id: req.params.id })
 
   res.status(200).json({
     success: true,
