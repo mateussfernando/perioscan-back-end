@@ -6,6 +6,7 @@ import fs from "fs";
 import QRCode from "qrcode";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 
 // Configurar moment para português do Brasil
 moment.locale("pt-br");
@@ -36,16 +37,6 @@ const fonts = {
 };
 
 /**
- * Calcula o espaço disponível na página atual
- * @param {PDFDocument} doc - Documento PDF
- * @param {Number} margin - Margem inferior a ser considerada
- * @returns {Number} - Espaço disponível em pontos
- */
-const availableSpace = (doc, margin = 50) => {
-  return doc.page.height - doc.y - margin;
-};
-
-/**
  * Gera um PDF para um relatório de evidência
  * @param {Object} report - O relatório a ser convertido em PDF
  * @param {Object} evidence - A evidência relacionada ao relatório
@@ -66,7 +57,7 @@ export const generateEvidenceReportPDF = async (
       const buffers = [];
       const doc = new PDFDocument({
         size: "A4",
-        margin: 50,
+        margin: 40, // Reduzir margens para aproveitar mais espaço
         bufferPages: true,
         autoFirstPage: true,
         info: {
@@ -84,7 +75,7 @@ export const generateEvidenceReportPDF = async (
       doc.on("end", () => resolve(Buffer.concat(buffers)));
 
       // Definir margens consistentes
-      const margin = 50;
+      const margin = 40;
       const contentWidth = doc.page.width - margin * 2;
 
       // Marca d'água (em camada inferior)
@@ -94,7 +85,7 @@ export const generateEvidenceReportPDF = async (
 
       // Cabeçalho
       const headerHeight = await addHeader(doc, options.logoPath, margin);
-      let currentY = headerHeight + 20; // Posição Y após o cabeçalho
+      let currentY = headerHeight + 10; // Reduzir espaço após o cabeçalho
 
       // Título principal
       doc
@@ -106,7 +97,7 @@ export const generateEvidenceReportPDF = async (
           width: contentWidth,
         });
 
-      currentY = doc.y + 15; // Atualizar posição Y após o título
+      currentY = doc.y + 10; // Reduzir espaço após o título
 
       // Seção do Caso
       currentY = addSectionTitle(doc, "INFORMAÇÕES DO CASO", margin, currentY);
@@ -133,7 +124,7 @@ export const generateEvidenceReportPDF = async (
       );
 
       currentY = addTable(doc, caseInfo, margin, currentY, contentWidth);
-      currentY += 15; // Espaço após a tabela
+      currentY += 10; // Reduzir espaço após a tabela
 
       // Seção da Evidência
       currentY = addSectionTitle(
@@ -191,7 +182,13 @@ export const generateEvidenceReportPDF = async (
       }
 
       currentY = addTable(doc, evidenceInfo, margin, currentY, contentWidth);
-      currentY += 15; // Espaço após a tabela
+      currentY += 10; // Reduzir espaço após a tabela
+
+      // Verificar se é necessário adicionar uma nova página
+      if (doc.y + 200 > doc.page.height) {
+        doc.addPage();
+        currentY = margin;
+      }
 
       // Conteúdo da Evidência - IMAGEM
       if (evidence.type === "image" && evidence.imageUrl) {
@@ -202,59 +199,99 @@ export const generateEvidenceReportPDF = async (
           currentY
         );
 
-        // Em vez de tentar renderizar a imagem, apenas exibir informações sobre ela
-        doc
-          .fontSize(11)
-          .font(fonts.normal)
-          .fillColor(colors.text)
-          .text(
-            "A imagem da evidência está disponível no seguinte link:",
-            margin,
-            currentY,
-            {
-              align: "left",
-              width: contentWidth,
-            }
-          );
+        try {
+          // Baixar a imagem e adicioná-la ao PDF
+          const imageBuffer = await downloadImage(evidence.imageUrl);
+          if (imageBuffer) {
+            // Calcular dimensões para manter a proporção e caber na página
+            const maxWidth = contentWidth;
+            const maxHeight = 200;
 
-        currentY = doc.y + 10;
+            // Adicionar a imagem com dimensões adequadas
+            doc.image(imageBuffer, margin, currentY + 10, {
+              fit: [maxWidth, maxHeight],
+              align: "center",
+              valign: "center",
+            });
 
-        // Adicionar o link da imagem em destaque
-        doc
-          .fontSize(10)
-          .font(fonts.bold)
-          .fillColor(colors.secondary)
-          .text(evidence.imageUrl, margin, currentY, {
-            align: "left",
-            width: contentWidth,
-            link: evidence.imageUrl,
-            underline: true,
-          });
+            // Atualizar a posição Y baseado na altura da imagem renderizada
+            const imgHeight = Math.min(
+              maxHeight,
+              doc.image.height * (maxWidth / doc.image.width)
+            );
+            currentY += imgHeight + 30;
 
-        currentY = doc.y + 15;
+            // Adicionar legenda
+            doc
+              .fontSize(8)
+              .font(fonts.italic)
+              .fillColor(colors.lightText)
+              .text(`Fonte: ${evidence.imageUrl}`, margin, currentY - 20, {
+                align: "center",
+                width: contentWidth,
+              });
+          } else {
+            // Se não conseguir baixar a imagem, mostrar o link
+            doc
+              .fontSize(10)
+              .font(fonts.normal)
+              .fillColor(colors.text)
+              .text(
+                "A imagem da evidência está disponível no seguinte link:",
+                margin,
+                currentY + 10,
+                {
+                  align: "left",
+                  width: contentWidth,
+                }
+              );
 
-        // Adicionar informações adicionais se disponíveis
-        if (
-          evidence.cloudinary &&
-          (evidence.cloudinary.width || evidence.cloudinary.height)
-        ) {
+            currentY += 25;
+
+            doc
+              .fontSize(9)
+              .font(fonts.bold)
+              .fillColor(colors.secondary)
+              .text(evidence.imageUrl, margin, currentY, {
+                align: "left",
+                width: contentWidth,
+                link: evidence.imageUrl,
+                underline: true,
+              });
+
+            currentY += 20;
+          }
+        } catch (error) {
+          console.error("Erro ao adicionar imagem:", error);
+          // Em caso de erro, mostrar apenas o link
           doc
-            .fontSize(9)
-            .font(fonts.italic)
-            .fillColor(colors.lightText)
+            .fontSize(10)
+            .font(fonts.normal)
+            .fillColor(colors.text)
             .text(
-              `Dimensões da imagem: ${evidence.cloudinary.width || "?"} x ${
-                evidence.cloudinary.height || "?"
-              } pixels`,
+              "A imagem da evidência está disponível no seguinte link:",
               margin,
-              currentY,
+              currentY + 10,
               {
                 align: "left",
                 width: contentWidth,
               }
             );
 
-          currentY = doc.y + 15;
+          currentY += 25;
+
+          doc
+            .fontSize(9)
+            .font(fonts.bold)
+            .fillColor(colors.secondary)
+            .text(evidence.imageUrl, margin, currentY, {
+              align: "left",
+              width: contentWidth,
+              link: evidence.imageUrl,
+              underline: true,
+            });
+
+          currentY += 20;
         }
       } else if (evidence.type === "text" && evidence.content) {
         currentY = addSectionTitle(
@@ -265,7 +302,7 @@ export const generateEvidenceReportPDF = async (
         );
 
         doc
-          .fontSize(10)
+          .fontSize(9)
           .font(fonts.italic)
           .fillColor(colors.text)
           .text(evidence.content, margin, currentY, {
@@ -273,11 +310,11 @@ export const generateEvidenceReportPDF = async (
             width: contentWidth,
           });
 
-        currentY = doc.y + 15;
+        currentY = doc.y + 10; // Reduzir espaço após o conteúdo
       }
 
       // Verificar se é necessário adicionar uma nova página
-      if (availableSpace(doc, 100) < 0) {
+      if (doc.y + 200 > doc.page.height) {
         doc.addPage();
         currentY = margin;
       }
@@ -307,14 +344,14 @@ export const generateEvidenceReportPDF = async (
       }
 
       currentY = addTable(doc, reportInfo, margin, currentY, contentWidth);
-      currentY += 15;
+      currentY += 10; // Reduzir espaço após a tabela
 
       // Conteúdo do Relatório
       if (report.methodology) {
         currentY = addSectionTitle(doc, "METODOLOGIA", margin, currentY);
 
         doc
-          .fontSize(11)
+          .fontSize(10)
           .font(fonts.normal)
           .fillColor(colors.text)
           .text(report.methodology, margin, currentY, {
@@ -322,13 +359,13 @@ export const generateEvidenceReportPDF = async (
             width: contentWidth,
           });
 
-        currentY = doc.y + 15;
+        currentY = doc.y + 10; // Reduzir espaço após a metodologia
       }
 
       currentY = addSectionTitle(doc, "ANÁLISE", margin, currentY);
 
       doc
-        .fontSize(11)
+        .fontSize(10)
         .font(fonts.normal)
         .fillColor(colors.text)
         .text(report.content, margin, currentY, {
@@ -336,12 +373,12 @@ export const generateEvidenceReportPDF = async (
           width: contentWidth,
         });
 
-      currentY = doc.y + 15;
+      currentY = doc.y + 10; // Reduzir espaço após a análise
 
       currentY = addSectionTitle(doc, "DESCOBERTAS", margin, currentY);
 
       doc
-        .fontSize(11)
+        .fontSize(10)
         .font(fonts.normal)
         .fillColor(colors.text)
         .text(report.findings, margin, currentY, {
@@ -349,13 +386,13 @@ export const generateEvidenceReportPDF = async (
           width: contentWidth,
         });
 
-      currentY = doc.y + 15;
+      currentY = doc.y + 10; // Reduzir espaço após as descobertas
 
       if (report.conclusion) {
         currentY = addSectionTitle(doc, "CONCLUSÃO", margin, currentY);
 
         doc
-          .fontSize(11)
+          .fontSize(10)
           .font(fonts.normal)
           .fillColor(colors.text)
           .text(report.conclusion, margin, currentY, {
@@ -363,11 +400,19 @@ export const generateEvidenceReportPDF = async (
             width: contentWidth,
           });
 
-        currentY = doc.y + 15;
+        currentY = doc.y + 10; // Reduzir espaço após a conclusão
       }
 
       // Assinatura Digital
       if (report.status === "assinado" && report.digitalSignature) {
+        // Verificar se é necessário adicionar uma nova página
+        if (doc.y + 150 > doc.page.height) {
+          doc.addPage();
+          currentY = margin;
+        } else {
+          currentY = doc.y + 10;
+        }
+
         currentY = await addDigitalSignature(
           doc,
           report,
@@ -379,6 +424,11 @@ export const generateEvidenceReportPDF = async (
       }
 
       // Adicionar rodapé com assinatura
+      // Verificar se há espaço suficiente para o rodapé
+      if (doc.y + 70 > doc.page.height) {
+        doc.addPage();
+      }
+
       addFooter(doc, expert, report, margin, contentWidth);
 
       // Adicionar numeração de páginas
@@ -393,7 +443,7 @@ export const generateEvidenceReportPDF = async (
           .text(
             `Página ${i + 1} de ${totalPages}`,
             margin,
-            doc.page.height - 30,
+            doc.page.height - 20,
             {
               align: "center",
               width: contentWidth,
@@ -409,9 +459,20 @@ export const generateEvidenceReportPDF = async (
   });
 };
 
-// ==============================================
-// FUNÇÕES AUXILIARES REESCRITAS
-// ==============================================
+/**
+ * Função para baixar uma imagem a partir de uma URL
+ * @param {String} url - URL da imagem
+ * @returns {Promise<Buffer>} - Buffer da imagem
+ */
+async function downloadImage(url) {
+  try {
+    const response = await axios.get(url, { responseType: "arraybuffer" });
+    return Buffer.from(response.data, "binary");
+  } catch (error) {
+    console.error("Erro ao baixar imagem:", error);
+    return null;
+  }
+}
 
 /**
  * Adiciona cabeçalho ao documento
@@ -422,39 +483,42 @@ export const generateEvidenceReportPDF = async (
  */
 const addHeader = async (doc, logoPath, margin) => {
   const contentWidth = doc.page.width - margin * 2;
-  const headerHeight = 70;
+  const headerHeight = 60; // Reduzir altura do cabeçalho
 
   // Cabeçalho com fundo claro
   doc
     .rect(margin, margin, contentWidth, headerHeight)
     .fillAndStroke(colors.light, colors.primary);
 
+  // Obter a hora atual correta
+  const currentDateTime = moment().format("DD/MM/YYYY [às] HH:mm:ss");
+
   if (logoPath && fs.existsSync(logoPath)) {
     doc
-      .image(logoPath, margin + 10, margin + 10, { width: 50 })
-      .fontSize(14)
+      .image(logoPath, margin + 10, margin + 10, { width: 40 }) // Reduzir tamanho do logo
+      .fontSize(12) // Reduzir tamanho da fonte
       .font(fonts.bold)
       .fillColor(colors.primary)
       .text(
         "SISTEMA DE GESTÃO PERICIAL ODONTOLEGAL - PERIOSCAN",
-        margin + 70,
+        margin + 60,
         margin + 15,
         {
-          width: contentWidth - 80,
+          width: contentWidth - 70,
         }
       )
-      .fontSize(10)
+      .fontSize(9) // Reduzir tamanho da fonte
       .text(
-        "Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm:ss"),
-        margin + 70,
-        margin + 35,
+        `Documento gerado em ${currentDateTime}`,
+        margin + 60,
+        margin + 30,
         {
-          width: contentWidth - 80,
+          width: contentWidth - 70,
         }
       );
   } else {
     doc
-      .fontSize(16)
+      .fontSize(14) // Reduzir tamanho da fonte
       .font(fonts.bold)
       .fillColor(colors.primary)
       .text(
@@ -466,16 +530,11 @@ const addHeader = async (doc, logoPath, margin) => {
           width: contentWidth,
         }
       )
-      .fontSize(10)
-      .text(
-        "Documento gerado em " + moment().format("DD/MM/YYYY [às] HH:mm:ss"),
-        margin,
-        margin + 40,
-        {
-          align: "center",
-          width: contentWidth,
-        }
-      );
+      .fontSize(9) // Reduzir tamanho da fonte
+      .text(`Documento gerado em ${currentDateTime}`, margin, margin + 35, {
+        align: "center",
+        width: contentWidth,
+      });
   }
 
   return margin + headerHeight;
@@ -491,12 +550,12 @@ const addHeader = async (doc, logoPath, margin) => {
  */
 const addSectionTitle = (doc, title, margin, yPosition) => {
   doc
-    .fontSize(12)
+    .fontSize(11)
     .font(fonts.bold)
     .fillColor(colors.primary)
     .text(title, margin, yPosition);
 
-  return doc.y + 5;
+  return doc.y + 3; // Reduzir espaço após o título
 };
 
 /**
@@ -515,23 +574,23 @@ const addTable = (doc, rows, margin, yPosition, width) => {
   rows.forEach((row, index) => {
     // Alternar cores de fundo para melhor legibilidade
     doc
-      .rect(margin, y, colWidth[0] + colWidth[1], 20)
-      .fill(index % 2 === 0 ? colors.light : "#ffffff");
+      .rect(margin, y, colWidth[0] + colWidth[1], 18)
+      .fill(index % 2 === 0 ? colors.light : "#ffffff"); // Reduzir altura da linha
 
     // Coluna 1 (label)
     doc
-      .fontSize(10)
+      .fontSize(9) // Reduzir tamanho da fonte
       .font(fonts.bold)
       .fillColor(colors.text)
-      .text(row[0], margin + 5, y + 5, { width: colWidth[0] - 10 });
+      .text(row[0], margin + 5, y + 4, { width: colWidth[0] - 10 }); // Ajustar posição vertical
 
     // Coluna 2 (valor)
     doc
-      .fontSize(10)
+      .fontSize(9) // Reduzir tamanho da fonte
       .font(fonts.normal)
-      .text(row[1], margin + colWidth[0], y + 5, { width: colWidth[1] - 10 });
+      .text(row[1], margin + colWidth[0], y + 4, { width: colWidth[1] - 10 }); // Ajustar posição vertical
 
-    y += 20;
+    y += 18; // Reduzir altura da linha
   });
 
   return y;
@@ -614,13 +673,7 @@ const addDigitalSignature = async (
   yPosition,
   width
 ) => {
-  // Verificar se é necessário adicionar uma nova página
-  if (availableSpace(doc, 150) < 0) {
-    doc.addPage();
-    yPosition = margin;
-  }
-
-  const boxHeight = 120;
+  const boxHeight = 100; // Reduzir altura da caixa de assinatura
 
   doc
     .rect(margin, yPosition, width, boxHeight)
@@ -649,18 +702,18 @@ const addDigitalSignature = async (
   }
 
   doc
-    .fontSize(10)
+    .fontSize(9) // Reduzir tamanho da fonte
     .font(fonts.bold)
     .fillColor(colors.primary)
     .text("Documento assinado digitalmente por:", margin + 10, yPosition + 10)
     .font(fonts.normal)
-    .text(`${signerName} (${signerEmail})`, margin + 10, yPosition + 25)
+    .text(`${signerName} (${signerEmail})`, margin + 10, yPosition + 22)
     .text(
       `Data e hora: ${moment(report.digitalSignature.signatureDate).format(
         "DD/MM/YYYY [às] HH:mm:ss"
       )}`,
       margin + 10,
-      yPosition + 40
+      yPosition + 34
     );
 
   const documentHash = crypto
@@ -673,9 +726,9 @@ const addDigitalSignature = async (
     .digest("hex");
 
   doc
-    .fontSize(8)
+    .fontSize(7) // Reduzir tamanho da fonte
     .font(fonts.italic)
-    .text(`Hash de verificação: ${documentHash}`, margin + 10, yPosition + 55);
+    .text(`Hash de verificação: ${documentHash}`, margin + 10, yPosition + 46);
 
   try {
     const verificationUrl = `${
@@ -686,33 +739,33 @@ const addDigitalSignature = async (
     const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl);
 
     doc
-      .image(qrCodeDataUrl, margin + width - 90, yPosition + 10, { width: 80 })
-      .fontSize(8)
+      .image(qrCodeDataUrl, margin + width - 80, yPosition + 10, { width: 70 }) // Reduzir tamanho do QR code
+      .fontSize(7) // Reduzir tamanho da fonte
       .text(
         "Escaneie o QR code para verificar a autenticidade",
-        margin + width - 180,
-        yPosition + 95,
+        margin + width - 160,
+        yPosition + 85,
         {
-          width: 160,
+          width: 140,
           align: "center",
         }
       );
   } catch (error) {
     console.error("Erro ao gerar QR code:", error);
     doc
-      .fontSize(8)
+      .fontSize(7)
       .text(
         "Não foi possível gerar o QR code",
-        margin + width - 180,
+        margin + width - 160,
         yPosition + 50,
         {
-          width: 160,
+          width: 140,
           align: "center",
         }
       );
   }
 
-  return yPosition + boxHeight + 10;
+  return yPosition + boxHeight + 5; // Reduzir espaço após a assinatura
 };
 
 /**
@@ -724,15 +777,11 @@ const addDigitalSignature = async (
  * @param {Number} width - Largura do conteúdo
  */
 const addFooter = (doc, expert, report, margin, width) => {
-  // Adicionar rodapé apenas na última página atual
-  const currentPage = doc.bufferedPageRange().count - 1;
-  doc.switchToPage(currentPage);
-
   // Calcular posição Y para o rodapé (mais próximo do final da página)
-  const footerY = doc.page.height - 70;
+  const footerY = doc.page.height - 60;
 
   doc
-    .fontSize(10)
+    .fontSize(9) // Reduzir tamanho da fonte
     .text("_______________________________", margin, footerY, {
       align: "center",
       width: width,
