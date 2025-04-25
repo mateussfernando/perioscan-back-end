@@ -1,3 +1,53 @@
+// src/routes/report.routes.js (adicionar)
+
+/**
+ * @swagger
+ * /api/reports/{id}/pdf-data:
+ *   get:
+ *     summary: Obter dados para geração de PDF do relatório
+ *     description: Retorna todos os dados necessários para gerar um PDF do relatório no frontend
+ *     tags: [Laudos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do relatório
+ *     responses:
+ *       200:
+ *         description: Dados para geração do PDF
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     report:
+ *                       $ref: '#/components/schemas/Report'
+ *                     forensicCase:
+ *                       $ref: '#/components/schemas/Case'
+ *                     expert:
+ *                       $ref: '#/components/schemas/User'
+ *                     evidences:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Evidence'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Sem permissão para acessar este relatório
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
 import express from "express"
 import {
   getReports,
