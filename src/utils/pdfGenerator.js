@@ -426,83 +426,39 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
 
       // Adicionar rodapé apenas na última página com conteúdo significativo
       const pageRange = doc.bufferedPageRange()
-      let totalPages = pageRange.count
-
-      // Se temos páginas extras desnecessárias, remover
-      let lastContentPage = 0
-      for (let i = totalPages - 1; i >= 0; i--) {
-        doc.switchToPage(i)
-        // Verificar se a página tem conteúdo significativo
-        // Se encontrarmos uma página com conteúdo, esta é nossa última página
-        if (i === 0 || doc._pageBuffers[i].length > 1000) {
-          // Valor aproximado para detectar conteúdo
-          lastContentPage = i
-          break
-        }
-      }
-
-      // Se temos páginas extras, ajustar o total
-      let effectivePageCount = lastContentPage + 1
-
-      // Adicionar rodapé na última página com conteúdo
-      doc.switchToPage(lastContentPage)
-      addFooter(doc, expert, report, margin, contentWidth)
-
-      // Percorrer todas as páginas para adicionar numeração
-      for (let i = 0; i < effectivePageCount; i++) {
-        doc.switchToPage(i)
-
-        // Adicionar numeração de página
-        doc
-          .fontSize(8)
-          .fillColor(colors.lightText)
-          .text(`Página ${i + 1} de ${effectivePageCount}`, margin, doc.page.height - 20, {
-            align: "center",
-            width: contentWidth,
-          })
-      }
-
-      // Se temos páginas extras, removê-las
-      if (effectivePageCount < totalPages) {
-        for (let i = totalPages - 1; i >= effectivePageCount; i--) {
-          doc._pageBuffers.pop() // Remove a última página
-        }
-        doc._pageBufferStart = effectivePageCount
-      }
-
-      // Finalizar o documento e preparar para adicionar rodapés e numeração
-      // Primeiro, vamos verificar se temos páginas vazias ou com pouco conteúdo
-      const pageRange2 = doc.bufferedPageRange()
-      totalPages = pageRange2.count
+      const totalPages = pageRange.count
 
       // Determinar a última página com conteúdo significativo
-      lastContentPage = 0
+      let lastContentPage = 0
       const significantContentThreshold = 1000 // Limiar para considerar uma página com conteúdo significativo
 
-      for (let i = 0; i < totalPages; i++) {
-        doc.switchToPage(i)
-        // Se for a primeira página ou tiver conteúdo significativo
-        if (i === 0 || doc._pageBuffers[i].length > significantContentThreshold) {
-          lastContentPage = i
+      // Verificar se doc._pageBuffers existe e tem elementos
+      if (doc._pageBuffers && Array.isArray(doc._pageBuffers)) {
+        for (let i = 0; i < totalPages; i++) {
+          doc.switchToPage(i)
+          // Se for a primeira página ou tiver conteúdo significativo
+          if (i === 0 || (doc._pageBuffers[i] && doc._pageBuffers[i].length > significantContentThreshold)) {
+            lastContentPage = i
+          }
         }
+      } else {
+        // Se não conseguirmos acessar _pageBuffers, usar a última página
+        lastContentPage = totalPages - 1
       }
 
       // Adicionar rodapé apenas na última página com conteúdo
       doc.switchToPage(lastContentPage)
       addFooter(doc, expert, report, margin, contentWidth)
 
-      // Ajustar o número efetivo de páginas
-      effectivePageCount = lastContentPage + 1
-
-      // Adicionar numeração de páginas apenas nas páginas com conteúdo
-      for (let i = 0; i < effectivePageCount; i++) {
+      // Adicionar numeração de páginas em todas as páginas
+      for (let i = 0; i < totalPages; i++) {
         doc.switchToPage(i)
 
         // Adicionar numeração de página
         doc
           .fontSize(8)
           .fillColor(colors.lightText)
-          .text(`Página ${i + 1} de ${effectivePageCount}`, margin, doc.page.height - 20, {
+          .text(`Página ${i + 1} de ${totalPages}`, margin, doc.page.height - 20, {
             align: "center",
             width: contentWidth,
           })
