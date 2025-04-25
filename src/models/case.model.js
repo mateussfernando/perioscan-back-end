@@ -10,7 +10,9 @@ const caseSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["acidente", "identificação de vítima", "exame criminal", "outro"],
+      trim: true,
+      maxlength: [40, "O tipo não pode ultrapassar 40 caracteres"],
+      default: "nao especificado"
     },
     description: {
       type: String,
