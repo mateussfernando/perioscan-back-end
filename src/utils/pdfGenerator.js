@@ -17,9 +17,7 @@ function getFormattedDateTime(date) {
   return moment(date || new Date()).format("DD/MM/YYYY [às] HH:mm:ss")
 }
 
-// Vamos melhorar a lógica de verificação de espaço disponível para evitar páginas extras
-// Substituir a função needsNewPage por esta versão mais precisa:
-
+// Modificar a função needsNewPage para considerar o espaço do rodapé e numeração de página
 function needsNewPage(doc, currentY, requiredHeight, margin) {
   // Considerar o espaço para o rodapé (70px) e numeração de página (20px)
   const footerSpace = 90
@@ -424,26 +422,31 @@ export const generateReportPDF = async (report, forensicCase, expert, evidences,
       // Finalizar o documento sem adicionar rodapés ainda
       // Vamos adicionar rodapés e numeração de páginas no final
 
-      // Adicionar rodapé apenas na última página com conteúdo significativo
+      // Substituir a lógica de adição de rodapé e numeração de páginas na função generateReportPDF
+      // Localizar o trecho que começa com "// Adicionar rodapé com assinatura" e substituir por:
+
+      // Adicionar rodapé com assinatura apenas na última página com conteúdo real
       const pageRange = doc.bufferedPageRange()
       const totalPages = pageRange.count
 
-      // Determinar a última página com conteúdo significativo
+      // Determinar qual é a última página com conteúdo real
       let lastContentPage = 0
-      const significantContentThreshold = 1000 // Limiar para considerar uma página com conteúdo significativo
+      let hasSignificantContent = false
 
-      // Verificar se doc._pageBuffers existe e tem elementos
-      if (doc._pageBuffers && Array.isArray(doc._pageBuffers)) {
-        for (let i = 0; i < totalPages; i++) {
-          doc.switchToPage(i)
-          // Se for a primeira página ou tiver conteúdo significativo
-          if (i === 0 || (doc._pageBuffers[i] && doc._pageBuffers[i].length > significantContentThreshold)) {
-            lastContentPage = i
-          }
+      // Verificar cada página para encontrar a última com conteúdo significativo
+      for (let i = 0; i < totalPages; i++) {
+        doc.switchToPage(i)
+
+        // Se for a primeira página ou a página atual tem conteúdo significativo
+        if (i === 0 || doc.y > margin + 100) {
+          lastContentPage = i
+          hasSignificantContent = true
         }
-      } else {
-        // Se não conseguirmos acessar _pageBuffers, usar a última página
-        lastContentPage = totalPages - 1
+      }
+
+      // Se não encontramos nenhuma página com conteúdo significativo, usar a primeira página
+      if (!hasSignificantContent) {
+        lastContentPage = 0
       }
 
       // Adicionar rodapé apenas na última página com conteúdo
