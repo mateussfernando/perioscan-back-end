@@ -72,7 +72,22 @@ export const createReport = asyncHandler(async (req, res, next) => {
     return next(error)
   }
 
+  // Criar o relatório
   const report = await Report.create(req.body)
+
+  // Atualizar o status do caso para "finalizado"
+  forensicCase.status = "finalizado"
+
+  // Se o caso não tiver data de fechamento, definir para a data atual
+  if (!forensicCase.closeDate) {
+    forensicCase.closeDate = Date.now()
+  }
+
+  // Salvar as alterações no caso
+  await forensicCase.save()
+
+  // Registrar a ação no log
+  console.log(`Case ${forensicCase._id} status updated to "finalizado" after report creation`)
 
   res.status(201).json({
     success: true,
