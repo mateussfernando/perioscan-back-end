@@ -160,12 +160,19 @@ export const deleteReport = asyncHandler(async (req, res, next) => {
     return next(error)
   }
 
-   await Report.deleteOne({ _id: req.params.id });
+  try {
+    await report.deleteOne()
 
-  res.status(200).json({
-    success: true,
-    data: {},
-  })
+    res.status(200).json({
+      success: true,
+      data: {},
+    })
+  } catch (error) {
+    console.error("Erro ao excluir relatório:", error)
+    const err = new Error(`Erro ao excluir relatório: ${error.message}`)
+    err.statusCode = 500
+    return next(err)
+  }
 })
 
 // @desc    Obter laudos para um caso específico
