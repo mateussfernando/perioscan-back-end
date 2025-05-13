@@ -1,16 +1,22 @@
-import express from "express"
-import { getCases, getCase, createCase, updateCase, deleteCase } from "../controllers/case.controller.js"
-import { getCaseEvidence } from "../controllers/evidence.controller.js"
-import { getCaseReports } from "../controllers/report.controller.js"
+import express from "express";
+import {
+  getCases,
+  getCase,
+  createCase,
+  updateCase,
+  deleteCase,
+} from "../controllers/case.controller.js";
+import { getCaseEvidence } from "../controllers/evidence.controller.js";
+import { getCaseReports } from "../controllers/report.controller.js";
 // Removida dependência do comparison.controller.js
-import { getCasePatients } from "../controllers/patient.controller.js"
-import Case from "../models/case.model.js"
-import advancedResults from "../middleware/advancedResults.middleware.js"
-import { protect, authorize } from "../middleware/auth.middleware.js"
+import { getCasePatients } from "../controllers/patient.controller.js";
+import Case from "../models/case.model.js";
+import advancedResults from "../middleware/advancedResults.middleware.js";
+import { protect, authorize } from "../middleware/auth.middleware.js";
 
-const router = express.Router()
+const router = express.Router();
 
-router.use(protect)
+router.use(protect);
 
 /**
  * @swagger
@@ -130,8 +136,11 @@ router.use(protect)
  */
 router
   .route("/")
-  .get(advancedResults(Case, [{ path: "createdBy", select: "name email" }]), getCases)
-  .post(authorize("admin", "perito"), createCase)
+  .get(
+    advancedResults(Case, [{ path: "createdBy", select: "name email" }]),
+    getCases
+  )
+  .post(authorize("admin", "perito"), createCase);
 
 /**
  * @swagger
@@ -254,8 +263,8 @@ router
 router
   .route("/:id")
   .get(getCase)
-  .put(authorize("admin", "perito"), updateCase)
-  .delete(authorize("admin", "perito"), deleteCase)
+  .put(authorize("admin", "perito", "assistente"), updateCase)
+  .delete(authorize("admin", "perito"), deleteCase);
 
 /**
  * @swagger
@@ -297,7 +306,7 @@ router
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.route("/:caseId/evidence").get(getCaseEvidence)
+router.route("/:caseId/evidence").get(getCaseEvidence);
 
 /**
  * @swagger
@@ -339,7 +348,7 @@ router.route("/:caseId/evidence").get(getCaseEvidence)
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.route("/:caseId/reports").get(getCaseReports)
+router.route("/:caseId/reports").get(getCaseReports);
 
 /**
  * @swagger
@@ -424,6 +433,6 @@ router.route("/:caseId/reports").get(getCaseReports)
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.route("/:caseId/patients").get(getCasePatients)
+router.route("/:caseId/patients").get(getCasePatients);
 
-export default router
+export default router;
