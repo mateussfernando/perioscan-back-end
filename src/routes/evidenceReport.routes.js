@@ -122,6 +122,50 @@
 
 /**
  * @swagger
+ * /api/evidence-reports/generate-ai/{evidenceId}:
+ *   post:
+ *     summary: Gerar relatório de evidência com IA
+ *     description: Gera automaticamente um relatório para uma evidência específica usando IA
+ *     tags: [Relatórios de Evidência]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: evidenceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da evidência para a qual gerar o relatório
+ *     responses:
+ *       201:
+ *         description: Relatório gerado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/EvidenceReport'
+ *                 message:
+ *                   type: string
+ *                   example: "Relatório gerado com sucesso usando IA"
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Sem permissão para gerar relatórios com IA
+ *       404:
+ *         description: Evidência não encontrada
+ *       500:
+ *         description: Erro ao gerar relatório com IA
+ */
+
+/**
+ * @swagger
  * /api/evidence-reports/{id}:
  *   get:
  *     summary: Obter um relatório de evidência específico
@@ -430,7 +474,7 @@
  *         $ref: '#/components/responses/NotFoundError'
  */
 
-import express from "express"
+import express from "express";
 import {
   getEvidenceReports,
   getEvidenceReport,
@@ -441,18 +485,24 @@ import {
   signEvidenceReport,
   verifyEvidenceReportSignature,
   verifyEvidenceReportByHash,
-} from "../controllers/evidenceReport.controller.js"
-import EvidenceReport from "../models/evidenceReport.model.js"
-import advancedResults from "../middleware/advancedResults.middleware.js"
-import { protect, authorize } from "../middleware/auth.middleware.js"
+  generateEvidenceReportAI,
+} from "../controllers/evidenceReport.controller.js";
+import EvidenceReport from "../models/evidenceReport.model.js";
+import advancedResults from "../middleware/advancedResults.middleware.js";
+import { protect, authorize } from "../middleware/auth.middleware.js";
 
-const router = express.Router()
+const router = express.Router();
 
 // Rota pública para verificação de relatórios
-router.route("/verify/:id").get(verifyEvidenceReportByHash)
+router.route("/verify/:id").get(verifyEvidenceReportByHash);
 
 // Rotas protegidas
-router.use(protect)
+router.use(protect);
+
+// Rota para geração de relatório com IA
+router
+  .route("/generate-ai/:evidenceId")
+  .post(authorize("admin", "perito"), generateEvidenceReportAI);
 
 router
   .route("/")
@@ -462,18 +512,20 @@ router
       { path: "case", select: "title status" },
       { path: "expertResponsible", select: "name email" },
     ]),
-    getEvidenceReports,
+    getEvidenceReports
   )
-  .post(authorize("admin", "perito"), createEvidenceReport)
+  .post(authorize("admin", "perito"), createEvidenceReport);
 
 router
   .route("/:id")
   .get(getEvidenceReport)
   .put(authorize("admin", "perito"), updateEvidenceReport)
-  .delete(authorize("admin", "perito"), deleteEvidenceReport)
+  .delete(authorize("admin", "perito"), deleteEvidenceReport);
 
-router.route("/:id/pdf").get(exportEvidenceReportPDF)
-router.route("/:id/sign").post(authorize("admin", "perito"), signEvidenceReport)
-router.route("/:id/verify").get(verifyEvidenceReportSignature)
+router.route("/:id/pdf").get(exportEvidenceReportPDF);
+router
+  .route("/:id/sign")
+  .post(authorize("admin", "perito"), signEvidenceReport);
+router.route("/:id/verify").get(verifyEvidenceReportSignature);
 
-export default router
+export default router;

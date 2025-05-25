@@ -11,6 +11,7 @@ import {
 } from "../utils/digitalSignature.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import ErrorResponse from "../utils/errorResponse.js";
 
 // Obter o diretório atual
 const __filename = fileURLToPath(import.meta.url);
@@ -89,6 +90,61 @@ export const createReport = asyncHandler(async (req, res, next) => {
     success: true,
     data: report,
   });
+});
+
+// @desc    Gerar laudo com IA
+// @route   POST /api/reports/generate-ai/:caseId
+// @access  Privado (apenas admin e perito)
+export const generateReportAI = asyncHandler(async (req, res, next) => {
+  // Verificar se o caso existe
+  const forensicCase = await Case.findById(req.params.caseId);
+  if (!forensicCase) {
+    const error = new Error(`Case not found with id of ${req.params.caseId}`);
+    error.statusCode = 404;
+    return next(error);
+  }
+
+  try {
+    // Obter todas as evidências relacionadas ao caso
+    const evidences = await Evidence.find({ case: forensicCase._id });
+
+    // Criar o laudo com conteúdo padrão (sem IA)
+    const report = await Report.create({
+      title: `Laudo Pericial - ${forensicCase.title}`,
+      content:
+        "Este laudo foi criado manualmente. A funcionalidade de IA foi removida.",
+      methodology: "Metodologia padrão de investigação forense",
+      conclusion: "Preencha manualmente a conclusão da análise.",
+      case: forensicCase._id,
+      expertResponsible: req.user.id,
+      status: "rascunho",
+      generatedByAI: false,
+      attachments: evidences.map((ev) => ev._id), // Anexar todas as evidências do caso
+    });
+
+    // Atualizar o status do caso para "finalizado"
+    forensicCase.status = "finalizado";
+
+    // Se o caso não tiver data de fechamento, definir para a data atual
+    if (!forensicCase.closeDate) {
+      forensicCase.closeDate = Date.now();
+    }
+
+    // Salvar as alterações no caso
+    await forensicCase.save();
+
+    res.status(201).json({
+      success: true,
+      data: report,
+      message:
+        "Funcionalidade de IA foi removida. Laudo criado com conteúdo padrão.",
+    });
+  } catch (error) {
+    console.error("Erro ao criar laudo:", error);
+    return next(
+      new ErrorResponse(`Erro ao criar laudo: ${error.message}`, 500)
+    );
+  }
 });
 
 // @desc    Atualizar laudo

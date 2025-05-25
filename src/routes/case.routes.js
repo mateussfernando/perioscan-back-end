@@ -5,16 +5,27 @@ import {
   createCase,
   updateCase,
   deleteCase,
+  // Removendo as funções que não estão sendo exportadas
+  // getCaseEvidence,
+  // getCaseReports,
+  // getCasePatients,
 } from "../controllers/case.controller.js";
-import { getCaseEvidence } from "../controllers/evidence.controller.js";
-import { getCaseReports } from "../controllers/report.controller.js";
-// Removida dependência do comparison.controller.js
-import { getCasePatients } from "../controllers/patient.controller.js";
+import { getCaseVictims } from "../controllers/victim.controller.js";
 import Case from "../models/case.model.js";
 import advancedResults from "../middleware/advancedResults.middleware.js";
 import { protect, authorize } from "../middleware/auth.middleware.js";
 
+// Incluir outros roteadores
+import evidenceRouter from "./evidence.routes.js";
+import reportRouter from "./report.routes.js";
+// Removida importação do patientRouter
+
 const router = express.Router();
+
+// Re-rotear para outros roteadores de recursos
+router.use("/:caseId/evidence", evidenceRouter);
+router.use("/:caseId/reports", reportRouter);
+// Removida rota para patients
 
 router.use(protect);
 
@@ -137,7 +148,10 @@ router.use(protect);
 router
   .route("/")
   .get(
-    advancedResults(Case, [{ path: "createdBy", select: "name email" }]),
+    advancedResults(Case, [
+      { path: "expertResponsible", select: "name email" },
+      { path: "createdBy", select: "name email" },
+    ]),
     getCases
   )
   .post(authorize("admin", "perito"), createCase);
@@ -266,173 +280,10 @@ router
   .put(authorize("admin", "perito", "assistente"), updateCase)
   .delete(authorize("admin", "perito"), deleteCase);
 
-/**
- * @swagger
- * /api/cases/{caseId}/evidence:
- *   get:
- *     summary: Obter evidências de um caso
- *     description: Retorna todas as evidências associadas a um caso específico
- *     tags: [Casos, Evidências]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: caseId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID do caso
- *     responses:
- *       200:
- *         description: Lista de evidências do caso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Evidence'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: Sem permissão para acessar este caso
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-router.route("/:caseId/evidence").get(getCaseEvidence);
-
-/**
- * @swagger
- * /api/cases/{caseId}/reports:
- *   get:
- *     summary: Obter laudos de um caso
- *     description: Retorna todos os laudos associados a um caso específico
- *     tags: [Casos, Laudos]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: caseId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID do caso
- *     responses:
- *       200:
- *         description: Lista de laudos do caso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Report'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: Sem permissão para acessar este caso
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-router.route("/:caseId/reports").get(getCaseReports);
-
-/**
- * @swagger
- * /api/cases/{caseId}/comparisons:
- *   get:
- *     summary: Obter comparações de um caso
- *     description: Retorna todas as comparações associadas a um caso específico
- *     tags: [Casos, Comparações]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: caseId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID do caso
- *     responses:
- *       200:
- *         description: Lista de comparações do caso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: Sem permissão para acessar este caso
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-// Rota de comparações removida temporariamente
-// router.route("/:caseId/comparisons").get(getCaseComparisons)
-
-/**
- * @swagger
- * /api/cases/{caseId}/patients:
- *   get:
- *     summary: Obter pacientes de um caso
- *     description: Retorna todos os pacientes associados a um caso específico
- *     tags: [Casos, Pacientes]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: caseId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID do caso
- *     responses:
- *       200:
- *         description: Lista de pacientes do caso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Patient'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: Sem permissão para acessar este caso
- *       404:
- *         $ref: '#/components/responses/NotFoundError'
- */
-router.route("/:caseId/patients").get(getCasePatients);
+// Comentando as rotas que usam funções não definidas
+// router.route("/:caseId/evidence").get(getCaseEvidence);
+// router.route("/:caseId/reports").get(getCaseReports);
+// router.route("/:caseId/patients").get(getCasePatients);
+router.route("/:caseId/victims").get(getCaseVictims);
 
 export default router;

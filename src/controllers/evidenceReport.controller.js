@@ -110,6 +110,80 @@ export const createEvidenceReport = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc    Gerar relatório de evidência com IA
+// @route   POST /api/evidence-reports/generate-ai/:evidenceId
+// @access  Privado (apenas admin e perito)
+export const generateEvidenceReportAI = asyncHandler(async (req, res, next) => {
+  // Verificar se a evidência existe
+  const evidence = await Evidence.findById(req.params.evidenceId);
+  if (!evidence) {
+    return next(
+      new ErrorResponse(
+        `Evidência não encontrada com id ${req.params.evidenceId}`,
+        404
+      )
+    );
+  }
+
+  // Obter o caso da evidência
+  const forensicCase = await Case.findById(evidence.case);
+  if (!forensicCase) {
+    return next(
+      new ErrorResponse(`Caso não encontrado com id ${evidence.case}`, 404)
+    );
+  }
+
+  try {
+    // Criar o relatório com conteúdo padrão (sem IA)
+    const evidenceReport = await EvidenceReport.create({
+      title: `Relatório de Análise - ${evidence.type}`,
+      content:
+        "Este relatório foi criado manualmente. A funcionalidade de IA foi removida.",
+      methodology: "Metodologia padrão de análise forense",
+      findings: "Preencha manualmente os achados da análise.",
+      conclusion: "Preencha manualmente a conclusão da análise.",
+      evidence: evidence._id,
+      case: forensicCase._id,
+      expertResponsible: req.user.id,
+      status: "rascunho",
+      generatedByAI: false,
+    });
+
+    // Adicionar metadados específicos do tipo de evidência
+    if (evidence.type === "image") {
+      evidenceReport.evidenceMetadata = {
+        imageType: evidence.imageType || "outro",
+        dimensions: evidence.cloudinary
+          ? {
+              width: evidence.cloudinary.width,
+              height: evidence.cloudinary.height,
+            }
+          : undefined,
+        format: evidence.cloudinary ? evidence.cloudinary.format : undefined,
+      };
+    } else if (evidence.type === "text") {
+      evidenceReport.evidenceMetadata = {
+        contentType: evidence.contentType || "outro",
+        wordCount: evidence.content ? evidence.content.split(/\s+/).length : 0,
+      };
+    }
+
+    await evidenceReport.save();
+
+    res.status(201).json({
+      success: true,
+      data: evidenceReport,
+      message:
+        "Funcionalidade de IA foi removida. Relatório criado com conteúdo padrão.",
+    });
+  } catch (error) {
+    console.error("Erro ao criar relatório:", error);
+    return next(
+      new ErrorResponse(`Erro ao criar relatório: ${error.message}`, 500)
+    );
+  }
+});
+
 // @desc    Atualizar relatório de evidência
 // @route   PUT /api/evidence-reports/:id
 // @access  Privado

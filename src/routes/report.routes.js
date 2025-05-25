@@ -1,4 +1,4 @@
-// src/routes/report.routes.js (adicionar)
+// src/routes/report.routes.js
 
 /**
  * @swagger
@@ -48,7 +48,51 @@
  *         $ref: '#/components/responses/NotFoundError'
  */
 
-import express from "express"
+/**
+ * @swagger
+ * /api/reports/generate-ai/{caseId}:
+ *   post:
+ *     summary: Gerar laudo com IA
+ *     description: Gera automaticamente um laudo completo para um caso usando IA
+ *     tags: [Laudos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do caso para o qual gerar o laudo
+ *     responses:
+ *       201:
+ *         description: Laudo gerado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Report'
+ *                 message:
+ *                   type: string
+ *                   example: "Laudo gerado com sucesso usando IA"
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Sem permissão para gerar laudos com IA
+ *       404:
+ *         description: Caso não encontrado
+ *       500:
+ *         description: Erro ao gerar laudo com IA
+ */
+
+import express from "express";
 import {
   getReports,
   getReport,
@@ -59,12 +103,13 @@ import {
   signReport,
   verifyReportSignature,
   verifyReportByHash,
-} from "../controllers/report.controller.js"
-import Report from "../models/report.model.js"
-import advancedResults from "../middleware/advancedResults.middleware.js"
-import { protect, authorize } from "../middleware/auth.middleware.js"
+  generateReportAI,
+} from "../controllers/report.controller.js";
+import Report from "../models/report.model.js";
+import advancedResults from "../middleware/advancedResults.middleware.js";
+import { protect, authorize } from "../middleware/auth.middleware.js";
 
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @swagger
@@ -135,10 +180,15 @@ const router = express.Router()
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.route("/verify/:id").get(verifyReportByHash)
+router.route("/verify/:id").get(verifyReportByHash);
 
 // Rotas protegidas
-router.use(protect)
+router.use(protect);
+
+// Rota para geração de laudo com IA
+router
+  .route("/generate-ai/:caseId")
+  .post(authorize("admin", "perito"), generateReportAI);
 
 /**
  * @swagger
@@ -265,9 +315,9 @@ router
       { path: "expertResponsible", select: "name email" },
       { path: "case", select: "title status" },
     ]),
-    getReports,
+    getReports
   )
-  .post(authorize("admin", "perito"), createReport)
+  .post(authorize("admin", "perito"), createReport);
 
 /**
  * @swagger
@@ -400,7 +450,7 @@ router
   .route("/:id")
   .get(getReport)
   .put(authorize("admin", "perito"), updateReport)
-  .delete(authorize("admin", "perito"), deleteReport)
+  .delete(authorize("admin", "perito"), deleteReport);
 
 /**
  * @swagger
@@ -435,7 +485,7 @@ router
  *       500:
  *         description: Erro ao gerar PDF
  */
-router.route("/:id/pdf").get(exportReportPDF)
+router.route("/:id/pdf").get(exportReportPDF);
 
 /**
  * @swagger
@@ -475,7 +525,7 @@ router.route("/:id/pdf").get(exportReportPDF)
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.route("/:id/sign").post(authorize("admin", "perito"), signReport)
+router.route("/:id/sign").post(authorize("admin", "perito"), signReport);
 
 /**
  * @swagger
@@ -524,7 +574,6 @@ router.route("/:id/sign").post(authorize("admin", "perito"), signReport)
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.route("/:id/verify").get(verifyReportSignature)
+router.route("/:id/verify").get(verifyReportSignature);
 
-export default router
-
+export default router;
