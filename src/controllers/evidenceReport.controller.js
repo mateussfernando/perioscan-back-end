@@ -134,7 +134,6 @@ export const generateEvidenceReportAI = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    // Criar o relatório com conteúdo padrão (sem IA)
     const evidenceReport = await EvidenceReport.create({
       title: `Relatório de Análise - ${evidence.type}`,
       content:

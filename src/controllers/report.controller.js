@@ -289,7 +289,11 @@ export const exportReportPDF = asyncHandler(async (req, res, next) => {
       logoPath: logoPath,
     };
 
-    const forensicCase = await Case.findById(report.case);
+    // Buscar o caso com as vítimas populadas
+    const forensicCase = await Case.findById(report.case).populate({
+      path: "victims",
+      select: "name identificationType referenceCode cases",
+    });
 
     // Gerar o PDF
     const pdfBuffer = await generateReportPDF(

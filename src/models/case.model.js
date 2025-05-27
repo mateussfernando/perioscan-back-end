@@ -12,7 +12,7 @@ const caseSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: [40, "O tipo não pode ultrapassar 40 caracteres"],
-      default: "nao especificado"
+      default: "nao especificado",
     },
     description: {
       type: String,
@@ -70,6 +70,14 @@ caseSchema.virtual("reports", {
 
 caseSchema.virtual("patients", {
   ref: "Patient",
+  localField: "_id",
+  foreignField: "cases.caseId",
+  justOne: false,
+});
+
+// Virtual para vítimas
+caseSchema.virtual("victims", {
+  ref: "Victim",
   localField: "_id",
   foreignField: "cases.caseId",
   justOne: false,

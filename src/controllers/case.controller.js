@@ -57,7 +57,8 @@ export const getCase = asyncHandler(async (req, res, next) => {
   const forensicCase = await Case.findById(req.params.id)
     .populate("createdBy", "name email")
     .populate("evidence")
-    .populate("reports");
+    .populate("reports")
+    .populate("victims");
 
   if (!forensicCase) {
     return next(
