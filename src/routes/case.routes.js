@@ -14,7 +14,6 @@ import { getCaseVictims } from "../controllers/victim.controller.js";
 import Case from "../models/case.model.js";
 import advancedResults from "../middleware/advancedResults.middleware.js";
 import { protect, authorize } from "../middleware/auth.middleware.js";
-import { getEvidenceReportsByCase } from "../controllers/evidenceReport.controller.js";
 
 // Incluir outros roteadores
 import evidenceRouter from "./evidence.routes.js";
@@ -286,8 +285,5 @@ router
 // router.route("/:caseId/reports").get(getCaseReports);
 // router.route("/:caseId/patients").get(getCasePatients);
 router.route("/:caseId/victims").get(getCaseVictims);
-
-// Rota para buscar relatórios de evidência de um caso específico
-router.get("/:caseId/evidence-reports", protect, getEvidenceReportsByCase);
 
 export default router;

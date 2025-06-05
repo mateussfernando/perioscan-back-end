@@ -19,7 +19,7 @@ import reportRoutes from "./src/routes/report.routes.js";
 
 import uploadRoutes from "./src/routes/upload.routes.js";
 // Removida importação de patientRoutes
-import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js"; // Nova importação
+import evidenceReportRouter from "./src/routes/evidenceReport.routes.js"; // Nova importação
 
 // Adicione a importação das rotas de victim abaixo das outras importações de rotas
 import victimRoutes from "./src/routes/victim.routes.js";
@@ -81,7 +81,7 @@ app.use("/api/reports", reportRoutes);
 
 app.use("/api/upload", uploadRoutes);
 // Removida rota de patients
-app.use("/api/evidence-reports", evidenceReportRoutes);
+app.use("/api/evidence-reports", evidenceReportRouter);
 
 // Adicione a linha que configura as rotas de victim abaixo das outras rotas
 app.use("/api/victims", victimRoutes);

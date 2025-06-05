@@ -528,4 +528,7 @@ router
   .post(authorize("admin", "perito"), signEvidenceReport);
 router.route("/:id/verify").get(verifyEvidenceReportSignature);
 
+// Rota para buscar relatórios de um caso específico
+router.get("/case/:caseId", getEvidenceReportsByCase);
+
 export default router;
