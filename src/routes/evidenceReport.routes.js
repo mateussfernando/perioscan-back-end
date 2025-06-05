@@ -490,6 +490,7 @@ import {
 import EvidenceReport from "../models/evidenceReport.model.js";
 import advancedResults from "../middleware/advancedResults.middleware.js";
 import { protect, authorize } from "../middleware/auth.middleware.js";
+import { getEvidenceReportsByCase } from "../controllers/evidenceReport.controller.js";
 
 const router = express.Router();
 
@@ -532,8 +533,7 @@ router.route("/:id/verify").get(verifyEvidenceReportSignature);
 router.get(
   "/cases/:caseId/evidence-reports",
   protect,
-  require("../controllers/evidenceReport.controller.js")
-    .getEvidenceReportsByCase
+  getEvidenceReportsByCase
 );
 
 export default router;
