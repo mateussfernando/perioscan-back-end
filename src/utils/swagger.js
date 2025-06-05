@@ -6,15 +6,15 @@ import path from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Opções básicas do Swagge
+// Opções básicas do Swagger
 const options = {
   definition: {
     openapi: "3.0.0",
     info: {
       title: "API de Gestão Odontológica Forense",
-      version: "1.0.0",
+      version: "1.1.0",
       description:
-        "API para gerenciamento de casos, evidências, laudos e pacientes em odontologia forense",
+        "API para gerenciamento de casos, evidências, laudos e pacientes em odontologia forense, com suporte a geração de conteúdo por IA",
       contact: {
         name: "Equipe de Desenvolvimento",
         email: "contato@exemplo.com",

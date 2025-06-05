@@ -60,6 +60,11 @@ CLIENT_URL=http://localhost:3000
 CLOUDINARY_CLOUD_NAME=seu-cloud-name
 CLOUDINARY_API_KEY=sua-api-key
 CLOUDINARY_API_SECRET=seu-api-secret
+
+# Configuração do OpenRouter (LLM)
+OPENROUTER_API_KEY=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
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=deepseek/deepseek-prover-v2:free
 ```
 
 ## Endpoints da API

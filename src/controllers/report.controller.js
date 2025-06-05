@@ -97,7 +97,11 @@ export const createReport = asyncHandler(async (req, res, next) => {
 // @access  Privado (apenas admin e perito)
 export const generateReportAI = asyncHandler(async (req, res, next) => {
   // Verificar se o caso existe
-  const forensicCase = await Case.findById(req.params.caseId);
+  const forensicCase = await Case.findById(req.params.caseId).populate({
+    path: "victims",
+    select: "name identificationType referenceCode cases",
+  });
+
   if (!forensicCase) {
     const error = new Error(`Case not found with id of ${req.params.caseId}`);
     error.statusCode = 404;
@@ -108,17 +112,25 @@ export const generateReportAI = asyncHandler(async (req, res, next) => {
     // Obter todas as evidências relacionadas ao caso
     const evidences = await Evidence.find({ case: forensicCase._id });
 
-    // Criar o laudo com conteúdo padrão (sem IA)
+    // Importar o serviço LLM
+    const llmService = (await import("../utils/llmService.js")).default;
+
+    // Gerar o conteúdo do laudo usando o LLM
+    const generatedContent = await llmService.generateForensicReport(
+      forensicCase,
+      evidences
+    );
+
+    // Criar o laudo com o conteúdo gerado pelo LLM
     const report = await Report.create({
       title: `Laudo Pericial - ${forensicCase.title}`,
-      content:
-        "Este laudo foi criado manualmente. A funcionalidade de IA foi removida.",
-      methodology: "Metodologia padrão de investigação forense",
-      conclusion: "Preencha manualmente a conclusão da análise.",
+      content: generatedContent.content,
+      methodology: generatedContent.methodology,
+      conclusion: generatedContent.conclusion,
       case: forensicCase._id,
       expertResponsible: req.user.id,
       status: "rascunho",
-      generatedByAI: false,
+      generatedByAI: true,
       attachments: evidences.map((ev) => ev._id), // Anexar todas as evidências do caso
     });
 
@@ -136,13 +148,12 @@ export const generateReportAI = asyncHandler(async (req, res, next) => {
     res.status(201).json({
       success: true,
       data: report,
-      message:
-        "Funcionalidade de IA foi removida. Laudo criado com conteúdo padrão.",
+      message: "Laudo gerado com sucesso utilizando IA.",
     });
   } catch (error) {
-    console.error("Erro ao criar laudo:", error);
+    console.error("Erro ao criar laudo com IA:", error);
     return next(
-      new ErrorResponse(`Erro ao criar laudo: ${error.message}`, 500)
+      new ErrorResponse(`Erro ao criar laudo com IA: ${error.message}`, 500)
     );
   }
 });

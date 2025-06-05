@@ -126,7 +126,11 @@ export const generateEvidenceReportAI = asyncHandler(async (req, res, next) => {
   }
 
   // Obter o caso da evidência
-  const forensicCase = await Case.findById(evidence.case);
+  const forensicCase = await Case.findById(evidence.case).populate({
+    path: "victims",
+    select: "name identificationType referenceCode cases",
+  });
+
   if (!forensicCase) {
     return next(
       new ErrorResponse(`Caso não encontrado com id ${evidence.case}`, 404)
@@ -134,18 +138,31 @@ export const generateEvidenceReportAI = asyncHandler(async (req, res, next) => {
   }
 
   try {
+    // Importar o serviço LLM
+    const llmService = (await import("../utils/llmService.js")).default;
+
+    // Gerar o conteúdo do relatório usando o LLM
+    const generatedContent = await llmService.generateEvidenceReport(
+      evidence,
+      forensicCase
+    );
+
     const evidenceReport = await EvidenceReport.create({
-      title: `Relatório de Análise - ${evidence.type}`,
-      content:
-        "Este relatório foi criado manualmente. A funcionalidade de IA foi removida.",
-      methodology: "Metodologia padrão de análise forense",
-      findings: "Preencha manualmente os achados da análise.",
-      conclusion: "Preencha manualmente a conclusão da análise.",
+      // Usar o título extraído do conteúdo gerado pela IA, ou um título padrão se não for encontrado
+      title:
+        generatedContent.title ||
+        `Relatório de Análise - ${
+          evidence.type === "image" ? "Imagem" : "Texto"
+        }: ${evidence.description || "Sem descrição"}`,
+      content: generatedContent.content,
+      methodology: generatedContent.methodology,
+      findings: generatedContent.findings,
+      conclusion: generatedContent.conclusion,
       evidence: evidence._id,
       case: forensicCase._id,
       expertResponsible: req.user.id,
       status: "rascunho",
-      generatedByAI: false,
+      generatedByAI: true,
     });
 
     // Adicionar metadados específicos do tipo de evidência
@@ -172,13 +189,12 @@ export const generateEvidenceReportAI = asyncHandler(async (req, res, next) => {
     res.status(201).json({
       success: true,
       data: evidenceReport,
-      message:
-        "Funcionalidade de IA foi removida. Relatório criado com conteúdo padrão.",
+      message: "Relatório de evidência gerado com sucesso utilizando IA.",
     });
   } catch (error) {
-    console.error("Erro ao criar relatório:", error);
+    console.error("Erro ao criar relatório com IA:", error);
     return next(
-      new ErrorResponse(`Erro ao criar relatório: ${error.message}`, 500)
+      new ErrorResponse(`Erro ao criar relatório com IA: ${error.message}`, 500)
     );
   }
 });
