@@ -149,7 +149,7 @@ router
   .route("/")
   .get(
     advancedResults(Case, [
-      { path: "expertResponsible", select: "name email" },
+      // Removido: { path: "expertResponsible", select: "name email" },
       { path: "createdBy", select: "name email" },
     ]),
     getCases

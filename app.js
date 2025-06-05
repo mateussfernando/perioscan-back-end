@@ -35,17 +35,7 @@ const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(
-  helmet({
-    contentSecurityPolicy: false, // Desabilitar para o Swagger UI funcionar corretamente
-  })
-);
-
-//Configurações do swagger
-setupSwagger(app);
-
-// Middlewares
-
+// CORS deve vir antes de tudo
 app.use(
   cors({
     origin: ["https://perioscan.netlify.app"],
@@ -55,8 +45,15 @@ app.use(
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Desabilitar para o Swagger UI funcionar corretamente
+  })
+);
 app.use(morgan("dev"));
+
+//Configurações do swagger
+setupSwagger(app);
 
 // Diretório de uploads temporários
 app.use(express.static(path.join(__dirname, "public")));
