@@ -528,4 +528,12 @@ router
   .post(authorize("admin", "perito"), signEvidenceReport);
 router.route("/:id/verify").get(verifyEvidenceReportSignature);
 
+// Nova rota para buscar relatórios de evidência de um caso específico
+router.get(
+  "/cases/:caseId/evidence-reports",
+  protect,
+  require("../controllers/evidenceReport.controller.js")
+    .getEvidenceReportsByCase
+);
+
 export default router;

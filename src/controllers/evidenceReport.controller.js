@@ -320,6 +320,21 @@ export const getEvidenceReportsByEvidence = asyncHandler(
   }
 );
 
+// @desc    Obter relatórios de evidência de um caso específico
+// @route   GET /api/cases/:caseId/evidence-reports
+// @access  Privado
+export const getEvidenceReportsByCase = asyncHandler(async (req, res, next) => {
+  const evidenceReports = await EvidenceReport.find({ case: req.params.caseId })
+    .populate("evidence", "type description imageUrl")
+    .populate("expertResponsible", "name email");
+
+  res.status(200).json({
+    success: true,
+    count: evidenceReports.length,
+    data: evidenceReports,
+  });
+});
+
 // @desc    Exportar relatório de evidência como PDF
 // @route   GET /api/evidence-reports/:id/pdf
 // @access  Privado
