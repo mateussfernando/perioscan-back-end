@@ -486,6 +486,7 @@ import {
   verifyEvidenceReportSignature,
   verifyEvidenceReportByHash,
   generateEvidenceReportAI,
+  getEvidenceReportsByCase,
 } from "../controllers/evidenceReport.controller.js";
 import EvidenceReport from "../models/evidenceReport.model.js";
 import advancedResults from "../middleware/advancedResults.middleware.js";
