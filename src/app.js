@@ -1,3 +1,8 @@
+import express from "express";
+const app = express();
+
+app.use(express.json()); // <-- ESSENCIAL para parsing de JSON
+
 import EvidenceReport from "../models/evidenceReport.model.js";
 import { Evidence } from "../models/evidence.model.js";
 import Case from "../models/case.model.js";
@@ -105,7 +110,6 @@ export const createEvidenceReport = asyncHandler(async (req, res, next) => {
     };
   }
 
-  console.log("Dados enviados para EvidenceReport.create:", req.body);
   const evidenceReport = await EvidenceReport.create(req.body);
 
   res.status(201).json({
