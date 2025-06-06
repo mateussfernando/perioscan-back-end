@@ -19,7 +19,7 @@ import reportRoutes from "./src/routes/report.routes.js"
 
 
 import uploadRoutes from "./src/routes/upload.routes.js"
-import patientRoutes from "./src/routes/patient.routes.js"
+// import patientRoutes from "./src/routes/patient.routes.js" // Comentado até que o arquivo existe
 import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js" // Nova importação
 
 // Carrega variáveis de ambiente
@@ -77,7 +77,7 @@ app.use("/api/reports", reportRoutes)
 
 
 app.use("/api/upload", uploadRoutes)
-app.use("/api/patients", patientRoutes)
+// app.use("/api/patients", patientRoutes) // Comentado até que o arquivo existe
 app.use("/api/evidence-reports", evidenceReportRoutes) 
 
 // Rota raiz
