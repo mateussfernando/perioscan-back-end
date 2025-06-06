@@ -83,9 +83,6 @@ export const createEvidenceReport = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Remover a verificação de propriedade do caso
-  // Todos os usuários autorizados podem criar relatórios para qualquer caso/evidência
-
   // Adicionar metadados específicos do tipo de evidência
   if (evidence.type === "image") {
     req.body.evidenceMetadata = {
@@ -105,8 +102,20 @@ export const createEvidenceReport = asyncHandler(async (req, res, next) => {
     };
   }
 
-  console.log("Dados enviados para EvidenceReport.create:", req.body);
-  const evidenceReport = await EvidenceReport.create(req.body);
+  // Filtrar apenas os campos esperados pelo model
+  const reportData = {
+    title: req.body.title,
+    findings: req.body.findings,
+    content: req.body.content,
+    evidence: req.body.evidence,
+    case: req.body.case,
+    expertResponsible: req.body.expertResponsible,
+    evidenceMetadata: req.body.evidenceMetadata,
+    // Adicione outros campos opcionais do seu schema aqui, se necessário
+  };
+
+  console.log("Dados enviados para EvidenceReport.create:", reportData);
+  const evidenceReport = await EvidenceReport.create(reportData);
 
   res.status(201).json({
     success: true,

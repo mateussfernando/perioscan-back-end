@@ -1,7 +1,14 @@
 import express from "express";
 const app = express();
 
-app.use(express.json()); // <-- ESSENCIAL para parsing de JSON
+app.use(express.json()); // <-- ESSENCIAL, antes das rotas
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/evidence-reports") && req.method === "POST") {
+    console.log("LOG GLOBAL req.body:", req.body);
+  }
+  next();
+});
 
 import EvidenceReport from "../models/evidenceReport.model.js";
 import { Evidence } from "../models/evidence.model.js";
