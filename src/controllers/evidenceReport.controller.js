@@ -55,6 +55,9 @@ export const getEvidenceReport = asyncHandler(async (req, res, next) => {
 // @route   POST /api/evidence-reports
 // @access  Privado
 export const createEvidenceReport = asyncHandler(async (req, res, next) => {
+  // Log para depuração: veja o corpo recebido do frontend
+  console.log("REQ.BODY recebido em createEvidenceReport:", req.body);
+
   // Definir perito responsável como usuário atual
   req.body.expertResponsible = req.user.id;
 
