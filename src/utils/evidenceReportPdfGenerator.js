@@ -99,6 +99,18 @@ function formatContentType(contentType) {
   }
 }
 
+// Função utilitária para formatar o tipo de evidência
+function formatEvidenceType(type) {
+  switch (type) {
+    case "image":
+      return "Imagem";
+    case "text":
+      return "Texto";
+    default:
+      return type || "Outro";
+  }
+}
+
 // --- Funções de Geração de PDF (Padronizado) ---
 
 const addHeader = (doc, logoPath) => {
