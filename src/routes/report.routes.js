@@ -92,6 +92,94 @@
  *         description: Erro ao gerar laudo com IA
  */
 
+/**
+ * @swagger
+ * /api/reports/generate-ai-caseonly/{caseId}:
+ *   post:
+ *     summary: Gerar laudo com IA (apenas dados do caso)
+ *     description: Gera automaticamente um laudo com base apenas nos dados do caso
+ *     tags: [Laudos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do caso para o qual gerar o laudo
+ *     responses:
+ *       201:
+ *         description: Laudo gerado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Report'
+ *                 message:
+ *                   type: string
+ *                   example: "Laudo gerado com sucesso usando IA (apenas dados do caso)"
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Sem permissão para gerar laudos com IA
+ *       404:
+ *         description: Caso não encontrado
+ *       500:
+ *         description: Erro ao gerar laudo com IA
+ */
+
+/**
+ * @swagger
+ * /api/reports/generate-ai-caseevidences/{caseId}:
+ *   post:
+ *     summary: Gerar laudo com IA (considerando caso e evidências)
+ *     description: Gera automaticamente um laudo com base nos dados do caso e nas evidências anexadas
+ *     tags: [Laudos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do caso para o qual gerar o laudo
+ *     responses:
+ *       201:
+ *         description: Laudo gerado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Report'
+ *                 message:
+ *                   type: string
+ *                   example: "Laudo gerado com sucesso usando IA (considerando caso e evidências)"
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Sem permissão para gerar laudos com IA
+ *       404:
+ *         description: Caso não encontrado
+ *       500:
+ *         description: Erro ao gerar laudo com IA
+ */
+
 import express from "express";
 import {
   getReports,
@@ -104,6 +192,8 @@ import {
   verifyReportSignature,
   verifyReportByHash,
   generateReportAI,
+  generateCaseOnlyReportAI,
+  generateCaseWithEvidencesReportAI,
 } from "../controllers/report.controller.js";
 import Report from "../models/report.model.js";
 import advancedResults from "../middleware/advancedResults.middleware.js";
@@ -189,6 +279,16 @@ router.use(protect);
 router
   .route("/generate-ai/:caseId")
   .post(authorize("admin", "perito"), generateReportAI);
+
+// Nova rota para geração de laudo com IA apenas com dados do caso
+router
+  .route("/generate-ai-caseonly/:caseId")
+  .post(authorize("admin", "perito"), generateCaseOnlyReportAI);
+
+// Nova rota para geração de laudo com IA considerando caso e evidências
+router
+  .route("/generate-ai-caseevidences/:caseId")
+  .post(authorize("admin", "perito"), generateCaseWithEvidencesReportAI);
 
 /**
  * @swagger

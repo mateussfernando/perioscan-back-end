@@ -144,6 +144,101 @@ class LLMService {
   }
 
   /**
+   * Gera um relatório pericial apenas com dados do caso (sem evidências)
+   * @param {Object} forensicCase - O caso forense
+   * @returns {Promise<Object>} Conteúdo gerado pelo LLM
+   */
+  async generateCaseOnlyReport(forensicCase) {
+    const client = this.getClient();
+    // Preparar o contexto do caso
+    const caseContext = this.prepareCaseContext(forensicCase);
+    // Construir o prompt para o LLM
+    const prompt = `Como especialista forense odontolegal, elabore um laudo técnico detalhado para o seguinte caso, utilizando apenas as informações fornecidas abaixo (não há evidências disponíveis):\n\n${caseContext}\n\nEstrutura do laudo:\n- Título: [título técnico]\n- Conteúdo: [texto principal do laudo]\n- Metodologia: [metodologia utilizada]\n- Conclusão: [conclusão técnica]\n\nUse linguagem técnica e profissional apropriada para um relatório pericial.\n`;
+    try {
+      const response = await client.post("/chat/completions", {
+        model: this.model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um especialista forense odontolegal experiente. Seu trabalho é analisar casos e produzir relatórios técnicos precisos e profissionais.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 1200,
+      });
+      const content = response.data.choices[0].message.content;
+      return {
+        content: content,
+        title: this.extractTitle(content),
+        methodology: this.extractMethodology(content),
+        conclusion: this.extractConclusion(content),
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao gerar relatório de caso com LLM:",
+        error.response?.data || error.message
+      );
+      throw new Error(
+        `Falha ao gerar relatório de caso com IA: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * Gera um relatório pericial com dados do caso e das evidências
+   * @param {Object} forensicCase - O caso forense
+   * @param {Array} evidences - Lista de evidências relacionadas ao caso
+   * @returns {Promise<Object>} Conteúdo gerado pelo LLM
+   */
+  async generateCaseWithEvidencesReport(forensicCase, evidences = []) {
+    const client = this.getClient();
+    // Preparar o contexto do caso
+    const caseContext = this.prepareCaseContext(forensicCase);
+    // Preparar o contexto das evidências
+    const evidencesContext = this.prepareEvidencesContext(evidences);
+    // Construir o prompt para o LLM
+    const prompt = `Como especialista forense odontolegal, elabore um laudo técnico detalhado para o seguinte caso, utilizando as informações do caso e das evidências fornecidas abaixo:\n\n${caseContext}\n\n${evidencesContext}\n\nEstrutura do laudo:\n- Título: [título técnico]\n- Conteúdo: [texto principal do laudo]\n- Metodologia: [metodologia utilizada]\n- Conclusão: [conclusão técnica]\n\nUse linguagem técnica e profissional apropriada para um relatório pericial.\n`;
+    try {
+      const response = await client.post("/chat/completions", {
+        model: this.model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um especialista forense odontolegal experiente. Seu trabalho é analisar casos e evidências para produzir relatórios técnicos precisos e profissionais.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+      });
+      const content = response.data.choices[0].message.content;
+      return {
+        content: content,
+        title: this.extractTitle(content),
+        methodology: this.extractMethodology(content),
+        conclusion: this.extractConclusion(content),
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao gerar relatório de caso com evidências no LLM:",
+        error.response?.data || error.message
+      );
+      throw new Error(
+        `Falha ao gerar relatório de caso com evidências e IA: ${error.message}`
+      );
+    }
+  }
+
+  /**
    * Prepara o contexto do caso para o prompt
    * @param {Object} forensicCase - O caso forense
    * @returns {String} Contexto formatado do caso

@@ -158,6 +158,101 @@ export const generateReportAI = asyncHandler(async (req, res, next) => {
   }
 });
 
+// @desc    Gerar laudo com IA apenas com dados do caso
+// @route   POST /api/reports/generate-ai-caseonly/:caseId
+// @access  Privado (apenas admin e perito)
+export const generateCaseOnlyReportAI = asyncHandler(async (req, res, next) => {
+  // Verificar se o caso existe
+  const forensicCase = await Case.findById(req.params.caseId);
+  if (!forensicCase) {
+    const error = new Error(`Case not found with id of ${req.params.caseId}`);
+    error.statusCode = 404;
+    return next(error);
+  }
+  try {
+    // Importar o serviço LLM
+    const llmService = (await import("../utils/llmService.js")).default;
+    // Gerar o conteúdo do laudo usando o LLM (apenas dados do caso)
+    const generatedContent = await llmService.generateCaseOnlyReport(
+      forensicCase
+    );
+    // Criar o laudo com o conteúdo gerado pelo LLM
+    const report = await Report.create({
+      title: generatedContent.title || `Laudo Pericial - ${forensicCase.title}`,
+      content: generatedContent.content,
+      methodology: generatedContent.methodology,
+      conclusion: generatedContent.conclusion,
+      case: forensicCase._id,
+      expertResponsible: req.user.id,
+      status: "rascunho",
+      generatedByAI: true,
+      attachments: [], // Nenhuma evidência
+    });
+    res.status(201).json({
+      success: true,
+      data: report,
+      message: "Laudo gerado com sucesso usando IA (apenas dados do caso)",
+    });
+  } catch (error) {
+    console.error("Erro ao criar laudo com IA (caso):", error);
+    return next(
+      new ErrorResponse(`Erro ao criar laudo com IA: ${error.message}`, 500)
+    );
+  }
+});
+
+// @desc    Gerar laudo com IA (caso + evidências)
+// @route   POST /api/reports/generate-ai-caseevidences/:caseId
+// @access  Privado (apenas admin e perito)
+export const generateCaseWithEvidencesReportAI = asyncHandler(
+  async (req, res, next) => {
+    // Verificar se o caso existe
+    const forensicCase = await Case.findById(req.params.caseId).populate({
+      path: "victims",
+      select: "name identificationType referenceCode cases",
+    });
+    if (!forensicCase) {
+      const error = new Error(`Case not found with id of ${req.params.caseId}`);
+      error.statusCode = 404;
+      return next(error);
+    }
+    try {
+      // Obter todas as evidências relacionadas ao caso
+      const evidences = await Evidence.find({ case: forensicCase._id });
+      // Importar o serviço LLM
+      const llmService = (await import("../utils/llmService.js")).default;
+      // Gerar o conteúdo do laudo usando o LLM (caso + evidências)
+      const generatedContent = await llmService.generateCaseWithEvidencesReport(
+        forensicCase,
+        evidences
+      );
+      // Criar o laudo com o conteúdo gerado pelo LLM
+      const report = await Report.create({
+        title:
+          generatedContent.title || `Laudo Pericial - ${forensicCase.title}`,
+        content: generatedContent.content,
+        methodology: generatedContent.methodology,
+        conclusion: generatedContent.conclusion,
+        case: forensicCase._id,
+        expertResponsible: req.user.id,
+        status: "rascunho",
+        generatedByAI: true,
+        attachments: evidences.map((ev) => ev._id),
+      });
+      res.status(201).json({
+        success: true,
+        data: report,
+        message: "Laudo gerado com sucesso usando IA (caso + evidências)",
+      });
+    } catch (error) {
+      console.error("Erro ao criar laudo com IA (caso + evidências):", error);
+      return next(
+        new ErrorResponse(`Erro ao criar laudo com IA: ${error.message}`, 500)
+      );
+    }
+  }
+);
+
 // @desc    Atualizar laudo
 // @route   PUT /api/reports/:id
 // @access  Privado
