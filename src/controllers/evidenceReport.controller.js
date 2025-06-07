@@ -352,6 +352,10 @@ export const getEvidenceReportsByCase = asyncHandler(async (req, res, next) => {
 // @route   GET /api/evidence-reports/:id/pdf
 // @access  Privado
 export const exportEvidenceReportPDF = asyncHandler(async (req, res, next) => {
+  console.log(
+    "[PDF] Iniciando exportação do relatório de evidência",
+    req.params.id
+  );
   const evidenceReport = await EvidenceReport.findById(req.params.id)
     .populate({
       path: "evidence",
@@ -364,6 +368,7 @@ export const exportEvidenceReportPDF = asyncHandler(async (req, res, next) => {
     .populate("expertResponsible");
 
   if (!evidenceReport) {
+    console.error("[PDF] Relatório não encontrado");
     return next(
       new ErrorResponse(
         `Relatório de evidência não encontrado com id ${req.params.id}`,
@@ -372,20 +377,49 @@ export const exportEvidenceReportPDF = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Remover a verificação de propriedade do caso
-  // Todos os usuários podem exportar qualquer relatório de evidência como PDF
-
   try {
     // Caminho para o logo (opcional)
     const logoPath = path.join(__dirname, "../public/assets/logo.png");
-
+    let logoExists = false;
+    try {
+      await import("fs/promises")
+        .then((fs) => fs.access(logoPath))
+        .then(() => {
+          logoExists = true;
+        })
+        .catch(() => {
+          logoExists = false;
+        });
+    } catch (e) {
+      logoExists = false;
+    }
+    if (!logoExists) {
+      console.warn(
+        `[PDF] Logo não encontrado em ${logoPath}. Continuando sem logo.`
+      );
+    } else {
+      console.log(`[PDF] Logo encontrado em ${logoPath}`);
+    }
     // Opções para geração do PDF
     const options = {
-      logoPath: logoPath,
+      logoPath: logoExists ? logoPath : undefined,
     };
 
     // Buscar o caso forense associado ao relatório
     const forensicCase = await Case.findById(evidenceReport.case);
+    if (!forensicCase) {
+      console.error("[PDF] Caso forense não encontrado para o relatório");
+    }
+
+    // Logar os dados principais
+    console.log("[PDF] Dados do relatório:", {
+      evidenceReportId: evidenceReport._id,
+      evidence: evidenceReport.evidence?._id || evidenceReport.evidence,
+      case: evidenceReport.case?._id || evidenceReport.case,
+      expertResponsible:
+        evidenceReport.expertResponsible?._id ||
+        evidenceReport.expertResponsible,
+    });
 
     // Gerar o PDF
     const pdfBuffer = await generateEvidenceReportPDF(
@@ -400,12 +434,12 @@ export const exportEvidenceReportPDF = asyncHandler(async (req, res, next) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="evidence-report-${evidenceReport._id}.pdf"`
+      `attachment; filename=\"evidence-report-${evidenceReport._id}.pdf\"`
     );
     res.setHeader("Content-Length", pdfBuffer.length);
 
     // Adicione logs para depuração
-    console.log("Enviando PDF:", {
+    console.log("[PDF] Enviando PDF:", {
       contentType: "application/pdf",
       contentLength: pdfBuffer.length,
       filename: `evidence-report-${evidenceReport._id}.pdf`,
@@ -414,8 +448,10 @@ export const exportEvidenceReportPDF = asyncHandler(async (req, res, next) => {
     // Enviar o PDF como resposta
     res.send(pdfBuffer);
   } catch (error) {
-    console.error("Erro ao gerar PDF:", error);
-    return next(new ErrorResponse(`Erro ao gerar PDF: ${error.message}`, 500));
+    console.error("[PDF] Erro ao gerar PDF:", error);
+    return next(
+      new ErrorResponse(`[PDF] Erro ao gerar PDF: ${error.message}`, 500)
+    );
   }
 });
 
