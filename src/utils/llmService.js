@@ -153,7 +153,7 @@ class LLMService {
     // Preparar o contexto do caso
     const caseContext = this.prepareCaseContext(forensicCase);
     // Construir o prompt para o LLM
-    const prompt = `Como especialista forense odontolegal, elabore um laudo técnico detalhado para o seguinte caso, utilizando apenas as informações fornecidas abaixo (não há evidências disponíveis):\n\n${caseContext}\n\nEstrutura do laudo:\n- Título: [título técnico]\n- Conteúdo: [texto principal do laudo]\n- Metodologia: [metodologia utilizada]\n- Conclusão: [conclusão técnica]\n\nUse linguagem técnica e profissional apropriada para um relatório pericial.\n`;
+    const prompt = `Como especialista forense odontolegal, elabore um laudo técnico detalhado para o seguinte caso, utilizando apenas as informações fornecidas abaixo (não há evidências disponíveis):\n\n${caseContext}\n\nEstrutura do laudo:\n- Título: [título técnico]\n- Conteúdo: [texto principal do laudo]\n- Metodologia: [metodologia utilizada]\n- Conclusão: [conclusão técnica]\n\nUse linguagem técnica e profissional apropriada para um relatório pericial.\nA resposta deve ser um texto corrido, técnico, sem formatação Markdown, sem listas, sem negrito, sem itálico, sem títulos destacados, apenas texto puro.`;
     try {
       const response = await client.post("/chat/completions", {
         model: this.model,
@@ -202,7 +202,7 @@ class LLMService {
     // Preparar o contexto das evidências
     const evidencesContext = this.prepareEvidencesContext(evidences);
     // Construir o prompt para o LLM
-    const prompt = `Como especialista forense odontolegal, elabore um laudo técnico detalhado para o seguinte caso, utilizando as informações do caso e das evidências fornecidas abaixo:\n\n${caseContext}\n\n${evidencesContext}\n\nEstrutura do laudo:\n- Título: [título técnico, máximo 100 caracteres]\n- Conteúdo: [texto principal do laudo]\n- Metodologia: [metodologia utilizada]\n- Conclusão: [conclusão técnica]\n\nUse linguagem técnica e profissional apropriada para um relatório pericial. O título deve ter no máximo 100 caracteres.\n`;
+    const prompt = `Como especialista forense odontolegal, elabore um laudo técnico detalhado para o seguinte caso, utilizando as informações do caso e das evidências fornecidas abaixo:\n\n${caseContext}\n\n${evidencesContext}\n\nEstrutura do laudo:\n- Título: [título técnico, máximo 100 caracteres]\n- Conteúdo: [texto principal do laudo]\n- Metodologia: [metodologia utilizada]\n- Conclusão: [conclusão técnica]\n\nUse linguagem técnica e profissional apropriada para um relatório pericial. O título deve ter no máximo 100 caracteres.\nA resposta deve ser um texto corrido, técnico, sem formatação Markdown, sem listas, sem negrito, sem itálico, sem títulos destacados, apenas texto puro.`;
     try {
       const response = await client.post("/chat/completions", {
         model: this.model,
