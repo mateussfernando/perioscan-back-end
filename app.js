@@ -18,8 +18,9 @@ import evidenceRoutes from "./src/routes/evidence.routes.js";
 import reportRoutes from "./src/routes/report.routes.js";
 
 import uploadRoutes from "./src/routes/upload.routes.js";
-// import patientRoutes from "./src/routes/patient.routes.js" // Comentado até que o arquivo existe
-import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js"; // Nova importação
+
+import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js"; 
+import victimRoutes from "./src/routes/victim.routes.js"; 
 
 // Carrega variáveis de ambiente
 dotenv.config();
@@ -42,8 +43,6 @@ app.use(
 setupSwagger(app);
 
 // Middlewares
-
-app.use(cors({ origin: true }));
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -77,6 +76,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/upload", uploadRoutes);
 // app.use("/api/patients", patientRoutes) // Comentado até que o arquivo existe
 app.use("/api/evidence-reports", evidenceReportRoutes);
+app.use("/api/victims", victimRoutes); // Registro da rota de vítima
 
 // Rota raiz
 app.get("/", (req, res) => {
