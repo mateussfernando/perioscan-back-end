@@ -19,7 +19,7 @@ import reportRoutes from "./src/routes/report.routes.js";
 
 import uploadRoutes from "./src/routes/upload.routes.js";
 
-import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js"; 
+import evidenceReportRoutes from "./src/routes/evidenceReport.routes.js"; // Nova importação
 import victimRoutes from "./src/routes/victim.routes.js"; 
 
 // Carrega variáveis de ambiente
@@ -28,6 +28,18 @@ dotenv.config();
 // Inicializa aplicação express
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// CORS deve vir antes de qualquer rota protegida
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Handler global para OPTIONS (pré-vôo CORS)
+app.options("*", cors());
 
 // Obter o diretório atual
 const __filename = fileURLToPath(import.meta.url);
