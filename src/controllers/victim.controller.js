@@ -716,9 +716,6 @@ export const getCaseVictims = asyncHandler(async (req, res, next) => {
   }
 
   const victims = await Victim.find({ "cases.caseId": req.params.caseId })
-    .select(
-      "identificationType name referenceCode gender estimatedGender status cases"
-    )
     .sort("identificationType name referenceCode");
 
   res.status(200).json({
