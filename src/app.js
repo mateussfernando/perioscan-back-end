@@ -24,6 +24,7 @@ import {
 } from "../utils/digitalSignature.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import victimRoutes from "./routes/victim.js";
 
 // Obter o diretório atual
 const __filename = fileURLToPath(import.meta.url);
@@ -550,3 +551,5 @@ export const verifyEvidenceReportByHash = asyncHandler(
     });
   }
 );
+
+app.use("/api/victims", victimRoutes);
