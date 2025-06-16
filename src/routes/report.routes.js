@@ -1,5 +1,3 @@
-// src/routes/report.routes.js
-
 /**
  * @swagger
  * /api/reports/{id}/pdf-data:
