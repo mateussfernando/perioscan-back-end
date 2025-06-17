@@ -17,8 +17,7 @@ router.get("/stats/temporal-evolution", dashboardController.temporalEvolution);
 router.get("/stats/age-distribution", dashboardController.ageDistribution);
 
 // ROTA 5: Fatores de Influência (ML)
-router.get("/ml/feature-importance", dashboardController.featureImportance);
-
+router.get("/stats/feature-importance", dashboardController.featureImportance);
 export default router;
 
 // --- Como usar no seu ficheiro principal (ex: server.js ou app.js) ---

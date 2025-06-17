@@ -124,7 +124,7 @@ export const featureImportance = async (req, res) => {
       process.env.PYTHON_API_URL ||
       "https://python-graficos-perioscan.onrender.com/api/modelo/coeficientes";
 
-    console.log("🔁 Chamando API Python:", pythonApiUrl);
+    console.log(`Chamando API Python em: ${pythonApiUrl}`);
 
     const response = await fetch(pythonApiUrl);
 
