@@ -3,6 +3,8 @@
 import Case from "../models/case.model.js";
 import Victim from "../models/victim.model.js";
 
+// --- Funções de Lógica para as Rotas ---
+
 const buildDateFilter = (startDate, endDate) => {
   const dateFilter = {};
   if (startDate) {
@@ -114,6 +116,7 @@ export const ageDistribution = async (req, res) => {
 
 /**
  * ROTA 5: Fatores de Influência (ML)
+ * Versão robusta que valida a resposta da API Python.
  */
 export const featureImportance = async (req, res) => {
   try {
@@ -121,29 +124,38 @@ export const featureImportance = async (req, res) => {
       process.env.PYTHON_API_URL ||
       "https://python-graficos-perioscan.onrender.com/api/modelo/coeficientes";
 
-    // 2. Faça o pedido para a API Python usando fetch
     const response = await fetch(pythonApiUrl);
 
-    // 3. Verifique se o pedido foi bem-sucedido
+    // Validação da resposta
+    if (response.status === 404) {
+      throw new Error(
+        `A rota '${pythonApiUrl}' não foi encontrada no servidor Python. Verifique o deploy e a URL.`
+      );
+    }
     if (!response.ok) {
       throw new Error(
         `O serviço de ML Python respondeu com o status: ${response.status}`
       );
     }
 
-    // 4. Converta a resposta para JSON
-    const data = await response.json();
-
-    // 5. Envie os dados recebidos do Python para o frontend
-    res.status(200).json(data);
+    // Verifica se a resposta é realmente JSON antes de a processar
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      const data = await response.json();
+      res.status(200).json(data);
+    } else {
+      // Se não for JSON, é provável que seja a página de boas-vindas
+      throw new Error(
+        "O servidor Python retornou uma resposta inesperada (não-JSON). Verifique se a rota da API está correta."
+      );
+    }
   } catch (error) {
     console.error(
       "Erro ao comunicar com o serviço de ML Python:",
       error.message
     );
     res.status(502).json({
-      error:
-        "O serviço de Machine Learning está indisponível ou retornou um erro.",
+      error: `O serviço de Machine Learning está indisponível ou retornou um erro: ${error.message}`,
     });
   }
 };
