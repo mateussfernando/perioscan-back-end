@@ -116,7 +116,7 @@ export const ageDistribution = async (req, res) => {
 
 /**
  * ROTA 5: Fatores de Influência (ML)
- * Versão robusta que valida a resposta da API Python.
+ * Com tratamento de respostas HTML e logs melhorados.
  */
 export const featureImportance = async (req, res) => {
   try {
@@ -124,37 +124,38 @@ export const featureImportance = async (req, res) => {
       process.env.PYTHON_API_URL ||
       "https://python-graficos-perioscan.onrender.com/api/modelo/coeficientes";
 
+    console.log("🔁 Chamando API Python:", pythonApiUrl);
+
     const response = await fetch(pythonApiUrl);
 
-    // Validação da resposta
     if (response.status === 404) {
       throw new Error(
-        `A rota '${pythonApiUrl}' não foi encontrada no servidor Python. Verifique o deploy e a URL.`
-      );
-    }
-    if (!response.ok) {
-      throw new Error(
-        `O serviço de ML Python respondeu com o status: ${response.status}`
+        `A rota '${pythonApiUrl}' não foi encontrada no servidor Python.`
       );
     }
 
-    // Verifica se a resposta é realmente JSON antes de a processar
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
       const data = await response.json();
-      res.status(200).json(data);
-    } else {
-      // Se não for JSON, é provável que seja a página de boas-vindas
-      throw new Error(
-        "O servidor Python retornou uma resposta inesperada (não-JSON). Verifique se a rota da API está correta."
-      );
+      return res.status(200).json(data);
     }
+
+    // Resposta não é JSON → loga o conteúdo para análise
+    const body = await response.text();
+    console.error(
+      "⚠️ Conteúdo inesperado da API Python (não-JSON):",
+      body.slice(0, 300)
+    );
+    return res.status(502).json({
+      error:
+        "O servidor Python respondeu com conteúdo inválido (provavelmente está acordando). Tente novamente em alguns segundos.",
+    });
   } catch (error) {
     console.error(
-      "Erro ao comunicar com o serviço de ML Python:",
+      "❌ Erro ao comunicar com o serviço de ML Python:",
       error.message
     );
-    res.status(502).json({
+    return res.status(502).json({
       error: `O serviço de Machine Learning está indisponível ou retornou um erro: ${error.message}`,
     });
   }
